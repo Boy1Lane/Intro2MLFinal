@@ -1,0 +1,7 @@
+Model,Accuracy,F1-weighted
+Voting Ensemble,0.8602,0.8487
+Linear SVM,0.8507,0.8459
+Logistic Regression,0.842,0.8449
+Random Forest,0.8386,0.8302
+Gradient Boosting,0.8572,0.8284
+Multinomial NB,0.8409,0.8232
