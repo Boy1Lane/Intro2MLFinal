@@ -1,0 +1,67 @@
+\documentclass[12pt]{article}
+
+\usepackage{hcmus-report-template}
+
+% Disable indentation on new paragraphs
+\setlength{\parindent}{0pt}
+
+% Line spacing 1.5
+\renewcommand{\baselinestretch}{1.5}
+
+% Optional: graphic path
+% \graphicspath{PATH_TO_GRAPHIC_FOLDER}
+
+% To use Times font family, uncomment this row
+% \usepackage{mathptmx}
+
+% To use roman section / subsection, uncomment these rows
+% \renewcommand{\thesection}{\Roman{section}}
+% \renewcommand{\thesubsection}{\thesection.\Roman{subsection}}
+% ===========================================
+
+% Define course name, report name and report title.
+\newcommand{\coursename}{Nhập môn học máy}
+\newcommand{\reportname}{Xây dựng Hệ thống phân loại bình luận tiêu cực}
+\newcommand{\reporttitle}{Báo cáo về dữ liệu}
+
+\newcommand{\studentname}{23120030 - Trần Thanh Đạt\\23120041 - Lê Minh Hải\\23120048 - Phan Hoàng Quốc Huy\\23120088 - Cao Tiến Thành\\23122006 - Lưu Thượng Hồng}
+\newcommand{\teachername}{TS. Bùi Tiến Lên\\ThS. Lê Nhựt Nam}
+
+% Header
+\lhead{\reporttitle}
+\rhead{
+Trường Đại học Khoa học Tự nhiên - ĐHQG HCM\\
+\coursename
+}
+
+% % Footer
+% \newcommand{\leftfooter}{\LaTeX\ by \href{https://github.com/trhgquan}{Quan, Tran Hoang}}
+% \lfoot{\leftfooter}
+% test
+
+% ============ DOCUMENT ============
+\begin{document}
+
+\pagenumbering{roman}
+\input{content/title.tex}
+
+\tableofcontents
+\pagebreak
+\listoftables
+\pagebreak
+\listoffigures
+\pagebreak
+
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+
+
+% References
+\input{ref/ref.tex}
+
+% Appendix
+% \appendix
+% Add \cleardoublepage to move appendices to next page.
+% \input{appendix/appendix.tex}
+\end{document}
