@@ -1,4 +1,0 @@
-Model,Accuracy,F1-weighted
-Logistic Regression,0.842,0.8449
-Multinomial NB,0.8409,0.8232
-Linear SVM,0.8507,0.8459
