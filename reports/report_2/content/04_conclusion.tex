@@ -1,0 +1,15 @@
+\section{Tổng kết}
+Thông qua việc thực hiện quy trình từ thu thập, làm sạch đến phân tích khám phá dữ liệu (EDA) trên bộ dữ liệu ViHSD, nhóm đã xây dựng được một nền tảng dữ liệu vững chắc cho bài toán phát hiện ngôn từ thù ghét. Các kết luận quan trọng rút ra bao gồm:
+
+\begin{itemize}
+    \item \textbf{Độ tin cậy của dữ liệu:} Quy trình làm sạch hai lớp (cấu trúc và NLP) đã loại bỏ hoàn toàn các giá trị null và trùng lặp, đồng thời chuẩn hóa được các nhiễu đặc thù của mạng xã hội như teencode và ký tự lặp, đảm bảo dữ liệu đầu vào cho mô hình có chất lượng cao.
+    \item \textbf{Thách thức về sự cân bằng:} Sự chênh lệch lớn giữa nhãn CLEAN (82.1\%) và các nhãn tiêu cực (HATE, OFFENSIVE) là đặc điểm cốt lõi của bài toán. Điều này đòi hỏi các chiến lược xử lý mất cân bằng nghiêm ngặt ở giai đoạn huấn luyện mô hình.
+    \item \textbf{Đặc trưng phân biệt nhãn:}
+          \begin{itemize}
+              \item \textit{Về độ dài:} Bình luận HATE có độ dài trung bình vượt trội và có ý nghĩa thống kê ($p < 0.001$), gợi ý việc sử dụng thông tin độ dài như một thuộc tính bổ trợ hữu hiệu.
+              \item \textit{Về ngữ nghĩa:} Sự khác biệt rõ rệt trong hệ thống từ vựng và cụm từ (bigram) giữa các nhãn xác nhận khả năng phân loại dựa trên đặc trưng ngôn ngữ.
+          \end{itemize}
+    \item \textbf{Chiến lược tiền xử lý tối ưu:} Nhóm quyết định loại bỏ triệt để các emoji và ký tự đặc biệt để giảm nhiễu, tập trung tối đa vào nội dung văn bản thuần túy. Ngược lại, việc giữ lại các từ dừng (stopwords) được chứng minh là cần thiết để bảo toàn sắc thái và ngữ cảnh của bình luận, vốn là yếu tố then chốt trong việc phân biệt các lớp nhãn. Nhóm sẽ liên tục cân nhắc các yếu tố này trong quá trình huấn luyện mô hình.
+\end{itemize}
+
+Những phân tích định lượng và định tính này không chỉ giúp nhóm hiểu sâu về bản chất dữ liệu mà còn là cơ sở để lựa chọn các kiến trúc mô hình học máy và phương pháp trích xuất đặc trưng phù hợp trong các giai đoạn tiếp theo của đồ án.

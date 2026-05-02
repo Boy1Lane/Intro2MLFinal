@@ -9,7 +9,7 @@
 \renewcommand{\baselinestretch}{1.5}
 
 % Optional: graphic path
-% \graphicspath{PATH_TO_GRAPHIC_FOLDER}
+\graphicspath{{figures/}}
 
 % To use Times font family, uncomment this row
 % \usepackage{mathptmx}
@@ -52,12 +52,13 @@ Trường Đại học Khoa học Tự nhiên - ĐHQG HCM\\
 \listoffigures
 \pagebreak
 
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
 \input{content/01_intro.tex}
 \input{content/02_data.tex}
 \input{content/03_eda.tex}
-
-\pagenumbering{arabic}
-\setcounter{page}{1}
+\input{content/04_conclusion.tex}
 
 
 

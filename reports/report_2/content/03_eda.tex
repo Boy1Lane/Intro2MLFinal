@@ -1,1 +1,202 @@
 \section{Phân tích khám phá dữ liệu (EDA)}
+\label{sec:eda}
+\subsection{Thống kê mô tả tổng quan}
+Bảng~\ref{tab:overview} tóm tắt thông tin cơ bản của ba tập dữ liệu sau xử lý. Bộ dữ liệu cuối cùng không còn giá trị null hay bản ghi trùng lặp ở bất kỳ tập nào.
+
+\begin{table}[H]
+    \centering
+    \caption{Thống kê tổng quan các tập dữ liệu sau xử lý}
+    \label{tab:overview}
+    \begin{tabular}{lrrrr}
+        \hline
+        \textbf{Tập}  & \textbf{Số mẫu} & \textbf{Số cột} & \textbf{Giá trị null} & \textbf{Bản ghi trùng} \\
+        \hline
+        Train         & 22,510          & 3               & 0                     & 0                      \\
+        Dev           & 2,633           & 3               & 0                     & 0                      \\
+        Test          & 6,527           & 3               & 0                     & 0                      \\
+        \hline
+        \textbf{Tổng} & \textbf{31,670} & —               & \textbf{0}            & \textbf{0}             \\
+        \hline
+    \end{tabular}
+\end{table}
+
+Bảng~\ref{tab:desc_stats} trình bày thống kê mô tả đầy đủ của thuộc tính số trong bộ dữ liệu, được tính từ cột \textit{free\_text\_clean} trên tập train.
+
+\begin{table}[H]
+    \centering
+    \caption{Thống kê mô tả độ dài văn bản (tập train)}
+    \label{tab:desc_stats}
+    \begin{tabular}{lrr}
+        \hline
+        \textbf{Thống kê} & \textbf{Độ dài (ký tự)} & \textbf{Số từ} \\
+        \hline
+        Số mẫu            & 22,510                  & 22,510         \\
+        Min               & 1                       & 1              \\
+        Max               & 7,084                   & 1,550          \\
+        Mean              & 48.1                    & 11.7           \\
+        Median            & 33                      & 8              \\
+        Std               & 84.2                    & 19.4           \\
+        Q1 (25\%)         & 19                      & 5              \\
+        Q3 (75\%)         & 56                      & 14             \\
+        IQR               & 37                      & 9              \\
+        \hline
+    \end{tabular}
+\end{table}
+
+Chỉ số std/mean = 1.75 cho độ dài ký tự xác nhận phân bố lệch phải rõ rệt — phần lớn bình luận rất ngắn gọn nhưng tồn tại một số bình luận cực dài kéo trung bình lên cao.
+
+\subsection{Phân tích phân bố nhãn}
+Bộ dữ liệu ViHSD sau xử lý hoàn chỉnh có tỉ lệ phân bố nhãn được thể hiện trong Hình~\ref{fig:label_dist_train}. Nhãn \textbf{CLEAN} (không tiêu cực) chiếm đa số tuyệt đối với 82.1\% tổng số mẫu trong tập train, trong khi nhãn \textbf{OFFENSIVE} (tiêu cực) chiếm 6.9\% và nhãn \textbf{HATE} (thù ghét) chiếm 11.1\%. Sự chênh lệch tỉ lệ rõ rệt này chứng tỏ bộ dữ liệu bị \textbf{mất cân bằng nghiêm trọng} (highly imbalanced). Hệ quả trực tiếp là nếu không có biện pháp xử lý, mô hình học máy sẽ có xu hướng dự đoán thiên về lớp đa số, làm giảm độ chính xác trên các lớp thiểu số. Do đó, các kỹ thuật xử lý mất cân bằng như class weighting hoặc oversampling cần được cân nhắc trong giai đoạn huấn luyện.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{../../output/eda/label_distribution.png}
+    \caption{Phân bố nhãn trong tập train: biểu đồ cột (trái) và biểu đồ tròn (phải)}
+    \label{fig:label_dist_train}
+\end{figure}
+
+\subsection{So sánh phân bố nhãn giữa các tập}
+Hình~\ref{fig:label_compare_splits} so sánh tỉ lệ phần trăm của từng nhãn giữa ba tập train, dev và test. Phân bố tỉ lệ các nhãn gần như \textbf{tương đồng} qua cả ba tập: nhãn CLEAN dao động quanh 82\%, OFFENSIVE quanh 7\% và HATE quanh 11\%. Sự nhất quán này xác nhận rằng quá trình phân chia tập dữ liệu gốc đã duy trì tốt tính đại diện — mô hình học từ tập train sẽ phản ánh đúng cấu trúc phân bố trên tập dev và test, giúp quá trình đánh giá có giá trị thực tiễn.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{../../output/eda/train_dev_test_comparison.png}
+    \caption{So sánh tỉ lệ phân bố nhãn (\%) giữa tập Train, Dev và Test}
+    \label{fig:label_compare_splits}
+\end{figure}
+
+\subsection{Thống kê độ dài văn bản theo nhãn}
+Bảng~\ref{tab:text_stats} trình bày thống kê mô tả độ dài văn bản (ký tự) và số từ theo từng nhãn trên tập train. Hình~\ref{fig:textlen_hist} và Hình~\ref{fig:textlen_box} trực quan hóa phân bố này qua histogram và boxplot.
+
+\begin{table}[H]
+    \centering
+    \caption{Thống kê độ dài văn bản và số từ theo nhãn (tập train)}
+    \label{tab:text_stats}
+    \begin{tabular}{lrrrrrrrr}
+        \hline
+        \multirow{2}{*}{\textbf{Nhãn}}              &
+        \multicolumn{4}{c}{\textbf{Độ dài (ký tự)}} &
+        \multicolumn{4}{c}{\textbf{Số từ}}                                                                                                     \\
+                                                    & \textbf{Min} & \textbf{Max} & \textbf{Mean} & \textbf{Median}
+                                                    & \textbf{Min} & \textbf{Max} & \textbf{Mean} & \textbf{Median}                            \\
+        \hline
+        CLEAN (0)                                   & 1            & 7,084        & 43.74         & 32.0            & 1 & 1,550 & 10.59 & 8.0  \\
+        OFFENSIVE (1)                               & 1            & 368          & 43.96         & 30.0            & 1 & 91    & 10.89 & 8.0  \\
+        HATE (2)                                    & 4            & 671          & 83.37         & 59.0            & 1 & 163   & 20.29 & 14.0 \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{../../output/eda/length_histogram.png}
+    \caption{Histogram phân bố độ dài ký tự (trái) và số từ (phải) theo nhãn}
+    \label{fig:textlen_hist}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{../../output/eda/length_boxplot.png}
+    \caption{Boxplot độ dài ký tự (trái) và số từ (phải) theo nhãn}
+    \label{fig:textlen_box}
+\end{figure}
+
+Một số nhận xét nổi bật từ thống kê và biểu đồ:
+\begin{itemize}
+    \item \textbf{Phân bố lệch phải (right-skewed):} Median luôn nhỏ hơn Mean ở cả ba nhãn, cho thấy phần lớn bình luận khá ngắn nhưng một số lượng nhỏ bình luận rất dài kéo giá trị trung bình lên cao.
+    \item \textbf{Nhãn HATE có độ dài vượt trội:} Bình luận thù ghét có độ dài trung bình (83.37 ký tự, 20.29 từ) gần gấp đôi so với hai nhãn còn lại, gợi ý rằng ngôn từ thù ghét thường được diễn đạt trong các câu dài hơn.
+    \item \textbf{Ngoại lệ (outliers):} Boxplot cho thấy lượng lớn các outlier phía trên râu trên, đặc biệt ở nhãn CLEAN, chủ yếu là spam hoặc nội dung sao chép lặp lại.
+\end{itemize}
+
+\subsection{Phân tích tương quan giữa độ dài văn bản và nhãn}
+Để kiểm định mối quan hệ giữa độ dài văn bản và nhãn phân loại, nhóm thực hiện kiểm định ANOVA một chiều và tính hệ số tương quan point-biserial giữa độ dài ký tự và từng nhãn trên tập train. Kết quả được tổng hợp tại Bảng~\ref{tab:correlation}.
+
+\begin{table}[H]
+    \centering
+    \caption{Hệ số tương quan point-biserial giữa độ dài ký tự và từng nhãn (tập train)}
+    \label{tab:correlation}
+    \begin{tabular}{lrrp{6.5cm}}
+        \hline
+        \textbf{Nhãn} & \textbf{Hệ số r} & \textbf{p-value} & \textbf{Kết luận}                \\
+        \hline
+        CLEAN (0)     & $-0.112$         & $< 0.001$        & Tương quan âm yếu, có ý nghĩa    \\
+        OFFENSIVE (1) & $-0.014$         & $0.043$          & Không có tương quan thực tế      \\
+        HATE (2)      & $+0.148$         & $< 0.001$        & Tương quan dương yếu, có ý nghĩa \\
+        \hline
+        \multicolumn{4}{l}{\textit{Kiểm định ANOVA một chiều: $F = 251.21$, $p < 0.001$}}      \\
+        \hline
+    \end{tabular}
+\end{table}
+
+Kiểm định ANOVA cho thấy sự khác biệt về độ dài văn bản giữa các nhóm nhãn là \textbf{có ý nghĩa thống kê} ($F = 251.21$, $p < 0.001$). Bình luận thuộc nhãn HATE có xu hướng dài hơn đáng kể (mean = 83.4 ký tự, median = 59) so với CLEAN (mean = 43.7, median = 32) và OFFENSIVE (mean = 44.0, median = 30). Nhãn OFFENSIVE không có tương quan thực tế với độ dài ($r = -0.014$). Nhận xét này nhất quán với thống kê ở Bảng~\ref{tab:text_stats}: ngôn từ thù ghét thường kèm theo lập luận hoặc mô tả chi tiết. Do đó, \textbf{độ dài văn bản có tiềm năng là một đặc trưng phụ trợ} (auxiliary feature) giúp phân biệt nhãn HATE với hai nhãn còn lại.
+
+\subsection{Phân tích tần suất từ và ngữ nghĩa theo nhãn}
+Hình~\ref{fig:top20_words} và Hình~\ref{fig:top20_bigrams} trình bày Top 20 từ đơn (unigram) và cụm 2 từ (bigram) phổ biến nhất theo từng nhãn. Hình~\ref{fig:wordclouds} minh họa Word Cloud trực quan.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{../../output/eda/top20_words_by_label.png}
+    \caption{Top 20 từ đơn phổ biến nhất theo từng nhãn}
+    \label{fig:top20_words}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{../../output/eda/top20_bigrams_by_label.png}
+    \caption{Top 20 cụm 2 từ (bigram) phổ biến nhất theo từng nhãn}
+    \label{fig:top20_bigrams}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[b]{0.32\textwidth}
+        \includegraphics[width=\textwidth]{../../output/eda/wordcloud_label_0.png}
+        \caption{CLEAN (nhãn 0)}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.32\textwidth}
+        \includegraphics[width=\textwidth]{../../output/eda/wordcloud_label_1.png}
+        \caption{OFFENSIVE (nhãn 1)}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.32\textwidth}
+        \includegraphics[width=\textwidth]{../../output/eda/wordcloud_label_2.png}
+        \caption{HATE (nhãn 2)}
+    \end{subfigure}
+    \caption{Word Cloud từ vựng phổ biến theo từng nhãn}
+    \label{fig:wordclouds}
+\end{figure}
+
+Các nhận xét rút ra từ phân tích tần suất:
+\begin{itemize}
+    \item \textbf{Stopwords vẫn được giữ lại có chủ đích:}
+          Các từ xuất hiện nhiều nhất ở cả ba nhãn chủ yếu là hư từ tiếng Việt như \textit{``không'', ``là'', ``mà'', ``có''}.
+          Nhóm không loại bỏ stopwords vì chúng vẫn mang tín hiệu ngữ nghĩa quan trọng trong bài toán phát hiện ngôn từ thù ghét.
+          Ví dụ, từ \textit{``không''} có thể thay đổi hoàn toàn cực tính của câu, trong khi các từ như \textit{``mà''} hay \textit{``thôi''} thường thể hiện sắc thái tiêu cực trong khẩu ngữ.
+          Việc giữ lại các từ này giúp bảo toàn ngữ cảnh và có thể cải thiện hiệu quả phân loại của mô hình.
+    \item \textbf{Sự khác biệt trong từ vựng theo nhãn:}
+          Nhãn CLEAN thể hiện sự giao tiếp mang tính xây dựng, với sự xuất hiện của các đại từ lịch sự như \textit{``anh'', ``em'', ``bạn''}.
+          Ngược lại, nhãn OFFENSIVE sử dụng các từ ngữ cảm thán mạnh và cách xưng hô suồng xã như \textit{``tao'', ``nó''}.
+          Nhãn HATE chứa các từ ngữ mang tính công kích trực tiếp vào danh tính hoặc đặc điểm của đối tượng.
+    \item \textbf{Bigram phân biệt rõ nhãn hơn unigram:} Phân tích bigram cho thấy nhãn CLEAN gắn với văn hóa giao tiếp cộng đồng tích cực (\textit{``mọi người'', ``anh em''}); nhãn OFFENSIVE bị thống trị bởi các cụm chửi thề (\textit{``mẹ nó'', ``đ mẹ''}); nhãn HATE chứa các cụm ngôn ngữ phân biệt và xúc phạm nhóm.
+\end{itemize}
+
+\subsection{Phát hiện điểm bất thường (Outliers)}
+Phân tích outliers trên tập train theo ba tiêu chí được tổng hợp tại Bảng~\ref{tab:outliers}.
+
+\begin{table}[H]
+    \centering
+    \caption{Thống kê các điểm bất thường trong tập train}
+    \label{tab:outliers}
+    \begin{tabular}{lrrl}
+        \hline
+        \textbf{Loại bất thường}                & \textbf{Số mẫu} & \textbf{Tỉ lệ} & \textbf{Hướng xử lý}          \\
+        \hline
+        Câu rất ngắn ($\leq$ 2 từ)              & 1,460           & 6.49\%         & Giữ lại                       \\
+        Câu rất dài ($>$ 100 từ)                & 17              & 0.08\%         & Cắt ngắn khi dùng Transformer \\
+        Nhiều ký tự lạ ($>$40\% ký tự đặc biệt) & 98              & 0.44\%         & Cân nhắc loại bỏ              \\
+        \hline
+    \end{tabular}
+\end{table}
+
+Nhóm quyết định \textbf{giữ lại} toàn bộ ba nhóm outlier này trong tập dữ liệu hiện tại. Các câu rất ngắn vẫn mang nhãn hợp lệ và có thể chứa đặc trưng quan trọng (một từ chửi thề đủ để phân loại). Các câu rất dài (17 mẫu, 0.08\%) sẽ được xử lý cắt ngắn ở bước mã hóa (tokenization) khi sử dụng mô hình Transformer có giới hạn chiều dài token đầu vào. Các câu chứa nhiều ký tự lạ sẽ được cân nhắc loại bỏ hoặc xử lý thêm.

@@ -1,1 +1,162 @@
 \section{Phương pháp và nguồn thu thập dữ liệu}
+\label{sec:data_preprocessing}
+
+\subsection{Nguồn gốc và cấu trúc tập dữ liệu}
+Nhằm đảm bảo tính minh bạch và khả năng tái tạo kết quả, phần này trình bày nguồn gốc học thuật và cấu trúc ban đầu của tập dữ liệu được sử dụng trong đồ án.
+Nhóm sử dụng bộ dữ liệu \textbf{ViHSD} (\textit{Vietnamese Hate Speech Detection}) — một trong những tập dữ liệu mã nguồn mở quy mô lớn tiêu biểu cho bài toán phát hiện ngôn từ thù ghét tiếng Việt, được công bố bởi Luu và cộng sự \cite{10.1007/978-3-030-79457-6_35} thuộc phòng thí nghiệm UIT-NLP, Đại học Công nghệ Thông tin -- ĐHQG TP.HCM.
+ViHSD được thu thập từ các nền tảng mạng xã hội phổ biến tại Việt Nam (Facebook, YouTube, TikTok), bao gồm 33,400 bình luận được gán nhãn thủ công. Hệ thống nhãn gồm ba lớp được mô tả chi tiết trong Bảng~\ref{tab:vihsd_labels}.
+
+\begin{table}[H]
+    \centering
+    \caption{Hệ thống nhãn và phân phối mẫu trong tập dữ liệu ViHSD}
+    \label{tab:vihsd_labels}
+    \begin{tabular}{clcrrr}
+        \hline
+        \textbf{Nhãn}                          & \textbf{Tên nhãn} & \textbf{Mô tả}                               & \textbf{Train} & \textbf{Dev} & \textbf{Test} \\
+        \hline
+        0                                      & CLEAN             & Bình luận sạch, không chứa nội dung tiêu cực & 19,886         & 2,190        & 5,548         \\
+        1                                      & OFFENSIVE         & Bình luận có ngôn từ xúc phạm, thô tục       & 1,606          & 212          & 444           \\
+        2                                      & HATE              & Ngôn từ thù ghét nhắm vào cá nhân hoặc nhóm  & 2,556          & 270          & 688           \\
+        \hline
+        \multicolumn{3}{c}{\textbf{Tổng cộng}} & \textbf{24,048}   & \textbf{2,672}                               & \textbf{6,680}                                \\
+        \hline
+    \end{tabular}
+\end{table}
+
+Bộ dữ liệu được phân chia thành ba tập định dạng CSV sẵn sàng cho mục đích huấn luyện và đánh giá: tập \textit{train} chứa 24,048 mẫu, tập \textit{dev} chứa 2,672 mẫu và tập \textit{test} chứa 6,680 mẫu, với cấu trúc thống nhất gồm hai cột chính là \textit{free\_text} (nội dung bình luận thô) và \textit{label\_id} (nhãn số nguyên tương ứng).
+
+Việc lựa chọn ViHSD vì đây là một benchmark chuẩn đã được cộng đồng nghiên cứu xử lý ngôn ngữ tự nhiên tiếng Việt (NLP) kiểm chứng, giúp đảm bảo tính so sánh với các công trình liên quan.
+Từ đó, bước tiếp theo cần tiến hành kiểm tra và làm sạch cấu trúc cơ bản nhằm xác định mức độ nhiễu cấu trúc tồn tại trong bộ dữ liệu trước khi đi vào xử lý ngôn ngữ chuyên sâu.
+
+\subsection{Quy trình làm sạch cấu trúc}
+Bước đầu tiên trong pipeline, nhóm kiểm tra và loại bỏ các quan sát không hợp lệ ở mức cấu trúc nhằm đảm bảo tính toàn vẹn của dữ liệu đầu vào. Quy trình gồm hai bước tuần tự được áp dụng đồng nhất cho cả ba tập:
+
+\begin{enumerate}
+    \item \textbf{Xử lý giá trị thiếu (Missing Values):} Các dòng có cột \textit{free\_text} rỗng hoặc \texttt{null} bị loại bỏ hoàn toàn, vì không thể thực hiện phân loại trên văn bản không có nội dung. Kết quả: tập \textit{train} loại 2 dòng null; \textit{dev} và \textit{test} không có null.
+    \item \textbf{Xử lý dữ liệu trùng lặp (Duplicates):} Các dòng hoàn toàn giống nhau về cả nội dung lẫn nhãn bị loại bỏ để tránh mô hình bị overfit trên các mẫu lặp. Kết quả: tập \textit{train} loại 1,356 dòng, \textit{dev} loại 21 dòng, \textit{test} loại 98 dòng.
+\end{enumerate}
+
+Sau bước làm sạch cấu trúc, phân phối nhãn trong ba tập được thể hiện tại Bảng~\ref{tab:structural_clean}.
+
+\begin{table}[H]
+    \centering
+    \caption{Phân phối mẫu sau bước làm sạch cấu trúc}
+    \label{tab:structural_clean}
+    \begin{tabular}{lrrr}
+        \hline
+        \textbf{Nhãn} & \textbf{Train}  & \textbf{Dev}   & \textbf{Test}  \\
+        \hline
+        CLEAN (0)     & 18,652          & 2,171          & 5,461          \\
+        OFFENSIVE (1) & 1,543           & 210            & 440            \\
+        HATE (2)      & 2,495           & 270            & 681            \\
+        \hline
+        \textbf{Tổng} & \textbf{22,690} & \textbf{2,651} & \textbf{6,582} \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\subsection{Tiền xử lý ngôn ngữ tự nhiên (NLP Preprocessing)}
+Do đặc thù của văn bản người dùng tự tạo (UGC) tiếng Việt chứa nhiều dạng nhiễu phi ngữ nghĩa như emoji, URL, teencode và ký tự lặp, nhóm thiết kế một pipeline chuẩn hóa văn bản gồm 11 bước tuần tự:
+
+\begin{enumerate}
+    \item \textbf{Chuyển chữ thường (Lowercasing):} Đồng nhất hóa toàn bộ ký tự về dạng chữ thường để loại bỏ phân biệt hoa/thường.
+    \item \textbf{Loại bỏ HTML tags:} Xóa các thẻ HTML còn sót lại từ quá trình thu thập dữ liệu bằng biểu thức chính quy.
+    \item \textbf{Loại bỏ URL:} Xóa các đường dẫn web dạng \texttt{http://} và \texttt{www.} không mang thông tin ngữ nghĩa.
+    \item \textbf{Loại bỏ địa chỉ email:} Xóa các chuỗi có dạng \texttt{user@domain.com}.
+    \item \textbf{Loại bỏ số điện thoại:} Xóa các số điện thoại Việt Nam dạng \texttt{0xxxxxxxxx} hoặc \texttt{+84xxxxxxxxx}.
+    \item \textbf{Loại bỏ emoji:} Xóa các ký tự Unicode thuộc khối emoticons và pictographs.
+    \item \textbf{Chuẩn hóa ký tự lặp:} Rút gọn các chuỗi ký tự lặp liên tiếp quá 2 lần (ví dụ: \textit{"đẹppppp"} $\rightarrow$ \textit{"đẹpp"}).
+    \item \textbf{Thay thế Teencode:} Tra cứu và thay thế từ điển 106 từ viết tắt và từ lóng phổ biến (ví dụ: \textit{"ko"} $\rightarrow$ \textit{"không"}, \textit{"dc"} $\rightarrow$ \textit{"được"}).
+    \item \textbf{Loại bỏ ký tự đặc biệt:} Chỉ giữ lại chữ cái tiếng Việt, chữ số và khoảng trắng; loại bỏ các ký tự còn lại.
+    \item \textbf{Chuẩn hóa khoảng trắng:} Thu gọn nhiều khoảng trắng liên tiếp thành một và xóa khoảng trắng đầu/cuối chuỗi.
+    \item \textbf{Loại bỏ dòng rỗng sau NLP:} Các mẫu trở thành chuỗi rỗng sau khi xử lý (thường là những bình luận chỉ chứa thuần emoji hoặc URL) được loại bỏ.
+\end{enumerate}
+
+Sau khi áp dụng pipeline, kết quả tổng hợp được thể hiện tại Bảng~\ref{tab:nlp_result}. Các mẫu bị loại sau NLP chủ yếu thuộc lớp CLEAN vì đây là những bình luận ngắn chỉ chứa thuần emoji hoặc URL. Tập dữ liệu sau xử lý được lưu dưới định dạng \texttt{*\_clean.csv}, sẵn sàng cho bước Phân tích Khám phá Dữ liệu (EDA).
+
+\begin{table}[H]
+    \centering
+    \caption{Tổng kết số liệu sau pipeline tiền xử lý NLP}
+    \label{tab:nlp_result}
+    \begin{tabular}{lrrrrrr}
+        \hline
+        \multirow{2}{*}{\textbf{Nhãn}}     &
+        \multicolumn{2}{c}{\textbf{Train}} &
+        \multicolumn{2}{c}{\textbf{Dev}}   &
+        \multicolumn{2}{c}{\textbf{Test}}                                                                                                                                      \\
+                                           & \textbf{Trước}           & \textbf{Sau}             & \textbf{Trước}           & \textbf{Sau}   & \textbf{Trước} & \textbf{Sau}   \\
+        \hline
+        CLEAN (0)                          & 18,652                   & 18,473                   & 2,171                    & 2,153          & 5,461          & 5,406          \\
+        OFFENSIVE (1)                      & 1,543                    & 1,542                    & 210                      & 210            & 440            & 440            \\
+        HATE (2)                           & 2,495                    & 2,495                    & 270                      & 270            & 681            & 681            \\
+        \hline
+        \textbf{Tổng}                      & \textbf{22,690}          & \textbf{22,510}          & \textbf{2,651}           & \textbf{2,633} & \textbf{6,582} & \textbf{6,527} \\
+        \textbf{Loại bỏ}                   & \multicolumn{2}{c}{180}  & \multicolumn{2}{c}{18}   & \multicolumn{2}{c}{55}                                                      \\
+        \hline
+        \textbf{Độ dài TB (ký tự)}         & \multicolumn{2}{c}{48.1} & \multicolumn{2}{c}{47.1} & \multicolumn{2}{c}{47.4}                                                    \\
+        \textbf{Số từ TB}                  & \multicolumn{2}{c}{11.7} & \multicolumn{2}{c}{11.5} & \multicolumn{2}{c}{11.5}                                                    \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\subsection{Đảm bảo chất lượng dữ liệu}
+Sau khi hoàn tất toàn bộ pipeline xử lý, nhóm thực hiện kiểm tra chất lượng tự động trên tập dữ liệu cuối cùng (\texttt{*\_clean.csv}) theo năm tiêu chí định lượng. Bảng~\ref{tab:qa_result} tổng hợp kết quả kiểm tra.
+
+\begin{table}[H]
+    \centering
+    \caption{Kết quả kiểm tra chất lượng tập dữ liệu sau xử lý hoàn chỉnh}
+    \label{tab:qa_result}
+    \begin{tabular}{lrrr}
+        \hline
+        \textbf{Tiêu chí kiểm tra}    & \textbf{Train} & \textbf{Dev} & \textbf{Test} \\
+        \hline
+        Tổng mẫu                      & 22,510         & 2,633        & 6,527         \\
+        Giá trị null còn lại          & 0              & 0            & 0             \\
+        Chuỗi rỗng còn lại            & 0              & 0            & 0             \\
+        Dòng trùng lặp còn lại        & 0              & 0            & 0             \\
+        Nhãn nằm ngoài $\{0, 1, 2\}$  & 0              & 0            & 0             \\
+        Outliers độ dài ($> 3\sigma$) & 108            & 65           & 136           \\
+        Mẫu rất ngắn ($< 3$ từ)       & 1,460          & 211          & 470           \\
+        \hline
+    \end{tabular}
+\end{table}
+
+Kết quả cho thấy bộ dữ liệu đạt năm tiêu chí đầu hoàn toàn: không còn null, chuỗi rỗng, trùng lặp hay nhãn không hợp lệ. Về ngoại lệ, 108 mẫu train có độ dài vượt ngưỡng $3\sigma$ (tương đương 0.48\%) — đây là các bình luận dài bất thường, chủ yếu là chuỗi spam hoặc nội dung được sao chép nhiều lần; nhóm quyết định giữ lại vì chúng vẫn mang nhãn hợp lệ và chiếm tỉ lệ rất nhỏ. Tương tự, các mẫu rất ngắn ($< 3$ từ) chiếm khoảng 6.5--8\% và phần lớn thuộc nhãn CLEAN, phản ánh đặc tính tự nhiên của bình luận mạng xã hội.
+
+\subsection{Lưu trữ và quản lý dữ liệu}
+
+Toàn bộ dữ liệu được lưu trữ trong thư mục \texttt{data/} tại thư mục gốc của dự án. Cấu trúc thư mục dữ liệu được minh họa ở Hình~\ref{fig:data_structure} .
+
+\begin{figure}[H]
+    \centering
+    \footnotesize
+
+    \begin{forest}
+        for tree={
+        font=\ttfamily,
+        grow'=0,
+        parent anchor=east,
+        child anchor=west,
+        anchor=west,
+        edge={
+                draw,
+            },
+        l sep=20pt,
+        s sep=4pt,
+        }
+        [data/, text width=2cm
+        [train.csv]
+        [dev.csv]
+        [test.csv]
+        [train\_structural\_clean.csv]
+        [dev\_structural\_clean.csv]
+        [test\_structural\_clean.csv]
+        [train\_clean.csv]
+        [dev\_clean.csv]
+        [test\_clean.csv]
+        ]
+    \end{forest}
+
+    \caption{Cấu trúc thư mục lưu trữ dữ liệu}
+    \label{fig:data_structure}
+\end{figure}
