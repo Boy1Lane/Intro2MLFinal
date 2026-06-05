@@ -1,0 +1,121 @@
+\section{Thảo luận và phân tích lỗi}
+
+\subsection{Hiện tượng Overfitting / Underfitting}
+
+Dựa trên kết quả Learning Curves và so sánh Train/Test performance, nhóm nhận xét trạng thái từng mô hình:
+
+\begin{table}[H]
+\centering
+\caption{Phân tích Overfitting / Underfitting và biện pháp khắc phục}
+\label{tab:overfitting}
+\resizebox{\textwidth}{!}{
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Mô hình} & \textbf{Trạng thái} & \textbf{Biện pháp khắc phục} \\
+\hline
+Logistic Regression & Ổn định (low bias, low variance) & Regularization L2 (C=10) \\
+Linear SVC & Ổn định & Regularization L2, class\_weight=balanced \\
+Multinomial NB & Underfitting nhẹ & Smoothing alpha=0.1 \\
+Random Forest & \textbf{Overfitting} (train$\approx$1.0, val$\approx$0.94) & class\_weight=balanced, SMOTE \\
+SGD Classifier & Ổn định & L2 penalty, 20 epochs \\
+PhoBERT & \textbf{Overfitting nhẹ} (val loss tăng epoch 2--3) & Weight decay=0.01, 3 epochs \\
+\hline
+\end{tabular}
+}
+\end{table}
+
+\textbf{Random Forest} thể hiện overfitting rõ nhất (Hình~\ref{fig:lc_rf}): train F1$\approx$1.0 nhưng val F1$\approx$0.94. Nguyên nhân là RF có thể ghi nhớ toàn bộ tập train khi \texttt{max\_depth=None}. Biện pháp khắc phục đã thử gồm giới hạn \texttt{max\_depth} (thử 10, 30, 50) và \texttt{class\_weight='balanced'}, tuy nhiên hiệu quả cải thiện hạn chế.
+
+\textbf{PhoBERT} có dấu hiệu overfitting nhẹ: Training Loss liên tục giảm nhưng Validation Loss tăng từ epoch 2. Nhóm sử dụng \texttt{load\_best\_model\_at\_end=True} và \texttt{weight\_decay=0.01} để giảm thiểu.
+
+Hình~\ref{fig:overfitting} minh họa phân tích overfitting thông qua so sánh Train score và Val/Test score.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.7\textwidth]{figures/overfitting_analysis.png}
+\caption{Phân tích Overfitting: so sánh Train CV Score và Test F1-weighted}
+\label{fig:overfitting}
+\end{figure}
+
+%---------------------------------------------------
+\subsection{Phân tích các trường hợp sai}
+
+Mô hình Voting Ensemble dự đoán sai \textbf{1{,}468 / 6{,}527 mẫu} (22.5\%) trên tập Test. Bảng~\ref{tab:error_types} phân nhóm 5 loại nhầm phổ biến nhất.
+
+\begin{table}[H]
+\centering
+\caption{Top 5 loại nhầm lẫn phổ biến nhất (Voting Ensemble trên tập Test)}
+\label{tab:error_types}
+\begin{tabular}{|l|l|c|l|}
+\hline
+\textbf{Nhãn thực} & \textbf{Nhãn dự đoán} & \textbf{Số mẫu} & \textbf{Giả thuyết nguyên nhân} \\
+\hline
+CLEAN & HATE & 474 & Chứa từ nhạy cảm nhưng ngữ cảnh trung tính \\
+CLEAN & OFFENSIVE & 402 & Văn bản có tone mạnh nhưng không xúc phạm \\
+HATE & CLEAN & 263 & Ngôn ngữ gián tiếp, châm biếm, mỉa mai \\
+OFFENSIVE & CLEAN & 158 & Cường độ tiêu cực thấp, ranh giới mờ \\
+OFFENSIVE & HATE & 100 & Ranh giới giữa xúc phạm và thù ghét không rõ \\
+\hline
+\end{tabular}
+\end{table}
+
+\textbf{Nhận xét:} Do sử dụng SMOTE để oversampling lớp thiểu số, mô hình có xu hướng dự đoán tích cực hơn cho lớp HATE và OFFENSIVE, dẫn đến nhiều mẫu CLEAN bị nhầm thành HATE (474 mẫu) và OFFENSIVE (402 mẫu). Đây là trade-off điển hình: tăng recall cho lớp thiểu số nhưng giảm precision.
+
+Hình~\ref{fig:error_dist} hiển thị phân bố các loại lỗi.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.65\textwidth]{figures/error_distribution.png}
+\caption{Phân bố các loại nhầm lẫn của Voting Ensemble trên tập Test}
+\label{fig:error_dist}
+\end{figure}
+
+%---------------------------------------------------
+\subsection{Bảng so sánh hiệu năng giữa các mô hình}
+
+Bảng~\ref{tab:model_compare} so sánh toàn diện hiệu năng trên cả Dev và Test, kèm F1-score theo từng lớp.
+
+\begin{table}[H]
+\centering
+\caption{So sánh hiệu năng giữa các mô hình (sắp xếp theo Test F1-weighted)}
+\label{tab:model_compare}
+\begin{tabular}{|l|c|c|c|c|}
+\hline
+\textbf{Mô hình} & \textbf{Dev F1-w} & \textbf{Test F1-w} & \textbf{Best CV Score} & \textbf{Ranking} \\
+\hline
+\textbf{PhoBERT-base-v2} & 0.8629 & \textbf{0.8637} & - & \textbf{1} \\
+Random Forest & - & 0.8079 & 0.9418 & 2 \\
+Multinomial NB & - & 0.8068 & 0.6632 & 3 \\
+Voting Ensemble & - & 0.7921 & - & 4 \\
+Logistic Regression & - & 0.7889 & 0.8932 & 5 \\
+Linear SVC & - & 0.7888 & 0.9033 & 6 \\
+SGD Classifier & - & 0.7746 & 0.7452 & 7 \\
+\hline
+\end{tabular}
+\end{table}
+
+Hình~\ref{fig:f1_per_class} so sánh F1-score theo từng lớp cho 6 mô hình truyền thống.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\textwidth]{figures/f1_per_class.png}
+\caption{F1-Score theo từng lớp cho các mô hình truyền thống}
+\label{fig:f1_per_class}
+\end{figure}
+
+Hình~\ref{fig:model_comparison} so sánh Accuracy và F1-weighted giữa các mô hình.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.75\textwidth]{figures/model_comparison.png}
+\caption{So sánh Accuracy và F1-weighted giữa các mô hình trên tập Test}
+\label{fig:model_comparison}
+\end{figure}
+
+\textbf{Nhận xét tổng quan:}
+\begin{itemize}
+    \item \textbf{PhoBERT} đạt hiệu suất cao nhất (F1-weighted = 0.8637, F1-macro = 0.6703), vượt trội so với các mô hình truyền thống nhờ khả năng nắm bắt ngữ nghĩa sâu qua pre-trained language model.
+    \item Trong nhóm mô hình truyền thống, \textbf{Random Forest} và \textbf{Multinomial NB} bất ngờ đạt F1-weighted cao nhất ($\approx$0.81), vượt qua cả Voting Ensemble.
+    \item \textbf{Voting Ensemble} không đạt hiệu quả như kỳ vọng do các mô hình thành viên (LR, SVM, SGD) có cùng bias tương tự (đều là tuyến tính), làm giảm tính đa dạng cần thiết cho ensemble.
+    \item Lớp OFFENSIVE (nhãn 1) luôn có F1-score thấp nhất ở mọi mô hình (0.30--0.45), phản ánh bản chất khó phân loại của bình luận xúc phạm nhẹ so với bình luận sạch.
+\end{itemize}

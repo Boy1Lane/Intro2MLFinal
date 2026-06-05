@@ -1,0 +1,54 @@
+\section{Tổng quan dữ liệu đầu vào}
+
+\subsection{Dữ liệu huấn luyện (Train / Validation / Test)}
+
+Dữ liệu sử dụng bộ ViHSD \parencite{10.1007/978-3-030-79457-6_35} --- bộ dữ liệu bình luận tiếng Việt trên mạng xã hội, đã được gán nhãn sẵn thành 3 lớp: CLEAN (0), OFFENSIVE (1), HATE (2). Bộ dữ liệu được chia sẵn thành 3 tập với tỷ lệ xấp xỉ \textbf{72 / 8 / 20} (Bảng~\ref{tab:data_split}).
+
+\begin{table}[H]
+\centering
+\caption{Thống kê tập dữ liệu sau tiền xử lý}
+\label{tab:data_split}
+\begin{tabular}{|l|c|c|c|c|}
+\hline
+\textbf{Tập} & \textbf{Số mẫu} & \textbf{CLEAN (\%)} & \textbf{OFFENSIVE (\%)} & \textbf{HATE (\%)} \\
+\hline
+Train & 22{,}510 & 18{,}473 (82.1\%) & 1{,}542 (6.9\%) & 2{,}495 (11.1\%) \\
+Dev (Validation) & 2{,}633 & 2{,}153 (81.8\%) & 210 (8.0\%) & 270 (10.3\%) \\
+Test & 6{,}527 & 5{,}406 (82.8\%) & 440 (6.7\%) & 681 (10.4\%) \\
+\hline
+\textbf{Tổng} & \textbf{31{,}670} & & & \\
+\hline
+\end{tabular}
+\end{table}
+
+\textbf{Lý do sử dụng tỷ lệ này:} Bộ dữ liệu ViHSD đã được chia sẵn bởi tác giả với tỷ lệ stratified (phân bố nhãn đồng nhất giữa các tập). Nhóm giữ nguyên cách chia này để đảm bảo tính so sánh với các nghiên cứu trước. Tập Dev được dùng cho validation trong quá trình tuning hyperparameter, tập Test chỉ dùng để đánh giá cuối cùng.
+
+\textbf{Đặc điểm nổi bật:} Dữ liệu mất cân bằng nghiêm trọng --- lớp CLEAN chiếm $\approx$82\%, trong khi OFFENSIVE chỉ $\approx$7\%. Điều này ảnh hưởng trực tiếp đến hiệu suất phân loại lớp thiểu số.
+
+\subsection{Tiền xử lý dữ liệu}
+
+Dữ liệu thô trải qua hai giai đoạn tiền xử lý trước khi đưa vào mô hình:
+
+\textbf{Giai đoạn 1 --- Làm sạch cấu trúc:} Xóa 2 dòng null trong tập train và loại bỏ 1{,}475 dòng trùng lặp trên cả 3 tập.
+
+\textbf{Giai đoạn 2 --- Chuẩn hóa văn bản NLP} gồm 10 bước tuần tự:
+\begin{enumerate}
+    \item Chuyển lowercase
+    \item Xóa HTML tags
+    \item Xóa URL
+    \item Xóa email, số điện thoại
+    \item Xóa emoji (ký tự Unicode đặc biệt)
+    \item Chuẩn hóa ký tự lặp (``đẹpppppp'' $\rightarrow$ ``đẹpp'')
+    \item Thay thế teencode bằng từ điển 106+ mục (``ko'' $\rightarrow$ ``không'', ``dc'' $\rightarrow$ ``được'')
+    \item Xóa ký tự đặc biệt, giữ lại chữ tiếng Việt và số
+    \item Chuẩn hóa khoảng trắng thừa
+    \item Xóa các dòng rỗng sau tiền xử lý (253 dòng)
+\end{enumerate}
+
+\textbf{Vectorization} (chuyển text thành số) được thực hiện riêng cho từng nhóm mô hình:
+\begin{itemize}
+    \item \textbf{TF-IDF} (\texttt{max\_features=10{,}000}, \texttt{ngram\_range=(1,2)}, \texttt{sublinear\_tf=True}): dùng cho LR, SVM, SGD, Voting.
+    \item \textbf{Bag-of-Words} (\texttt{max\_features=10{,}000}, \texttt{ngram\_range=(1,2)}): dùng cho Multinomial NB.
+    \item \textbf{TruncatedSVD} (300 components): giảm chiều TF-IDF cho Random Forest.
+    \item \textbf{PhoBERT Tokenizer} (\texttt{max\_length=256}): BPE tokenizer riêng cho PhoBERT.
+\end{itemize}
