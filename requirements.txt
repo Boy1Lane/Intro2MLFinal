@@ -1,0 +1,14 @@
+joblib
+matplotlib
+numpy
+pandas
+scikit-learn
+scipy
+seaborn
+wordcloud
+imbalanced-learn
+torch
+transformers
+datasets
+accelerate
+huggingface-hub
