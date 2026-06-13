@@ -53,6 +53,38 @@ Hình~\ref{fig:arch_pipeline} mô tả luồng xử lý dữ liệu từ văn b�
 
 \textbf{Kiến trúc:} PhoBERT-base-v2 dựa trên RoBERTa gồm 12 lớp Transformer encoder \parencite{vaswani2017transformer}, mỗi lớp có 12 attention heads, kích thước hidden state 768. Tổng cộng khoảng \textbf{135 triệu tham số} (bao gồm embedding + encoder + classification head).
 
+Sơ đồ cấu trúc chi tiết của mô hình và classification head được thể hiện qua Hình~\ref{fig:phobert_arch}.
+
+\usetikzlibrary{positioning}
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=1.0cm,
+    block/.style={draw, rectangle, rounded corners, align=center, fill=blue!5, font=\small, minimum width=6cm, minimum height=0.7cm},
+    head_block/.style={draw, rectangle, rounded corners, align=center, fill=orange!10, font=\small, minimum width=6cm, minimum height=0.7cm},
+    arrow/.style={thick, ->, >=stealth}
+]
+    % Nodes
+    \node (input) [block, fill=gray!10] {Input Tokens \\ (max\_length = 256)};
+    \node (emb) [block, below=of input] {Embedding Layer \\ (Word + Position + Segment)};
+    \node (enc) [block, below=of emb, fill=blue!10] {12x Transformer Encoder Layers \\ (12 attention heads, $d_{model} = 768$)};
+    \node (cls) [block, below=of enc] {[CLS] Token Representation \\ (Vector size: 768)};
+    \node (dense) [head_block, below=of cls] {Dense Layer (768 $\rightarrow$ 768) \\ + Tanh Activation};
+    \node (linear) [head_block, below=of dense] {Linear Classification Head \\ (768 $\rightarrow$ 3 classes)};
+    \node (softmax) [block, below=of linear, fill=green!5] {Softmax Function \\ (CLEAN, OFFENSIVE, HATE)};
+
+    % Arrows
+    \draw [arrow] (input) -- (emb);
+    \draw [arrow] (emb) -- (enc);
+    \draw [arrow] (enc) -- (cls);
+    \draw [arrow] (cls) -- (dense);
+    \draw [arrow] (dense) -- (linear);
+    \draw [arrow] (linear) -- (softmax);
+\end{tikzpicture}
+\caption{Sơ đồ kiến trúc chi tiết mô hình PhoBERT-base-v2 và classification head}
+\label{fig:phobert_arch}
+\end{figure}
+
 \textbf{Classification Head:} Đầu ra CLS token được đưa qua lớp Dense (768 $\rightarrow$ 768, hàm kích hoạt Tanh) rồi qua lớp phân loại tuyến tính (768 $\rightarrow$ 3, hàm kích hoạt Softmax qua Cross-Entropy Loss).
 
 \textbf{Tokenization:} Sử dụng BPE tokenizer của PhoBERT với \texttt{max\_length=256}, \texttt{padding="max\_length"}, \texttt{truncation=True}.
@@ -62,7 +94,7 @@ Hình~\ref{fig:arch_pipeline} mô tả luồng xử lý dữ liệu từ văn b�
 
 \subsection{Xử lý mất cân bằng dữ liệu}
 
-Dữ liệu mất cân bằng nghiêm trọng (CLEAN: 82\%, OFFENSIVE: 7\%, HATE: 11\%), nhóm áp dụng hai chiến lược:
+Dữ liệu mất cân bằng nghiêm trọng (CLEAN: 82\%, OFFENSIVE: 7\%, HATE: 11\%), nhóm áp dụng ba chiến lược:
 \begin{itemize}
     \item \textbf{SMOTE} \parencite{chawla2002smote} (Synthetic Minority Over-sampling Technique): tổng hợp mẫu nhân tạo cho lớp thiểu số trên không gian TF-IDF/BoW, nâng tập train từ 22{,}510 lên 55{,}419 mẫu (cân bằng 3 lớp).
     \item \textbf{class\_weight='balanced'}: thử nghiệm qua GridSearchCV cho LR, SVM - tự điều chỉnh trọng số tỷ lệ nghịch với tần suất lớp.

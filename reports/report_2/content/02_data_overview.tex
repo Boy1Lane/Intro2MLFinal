@@ -1,8 +1,8 @@
 \section{Tổng quan dữ liệu đầu vào}
 
-\subsection{Dữ liệu huấn luyện (Train / Validation / Test)}
+\subsection{Dữ liệu huấn luyện}
 
-Dữ liệu sử dụng bộ ViHSD \parencite{10.1007/978-3-030-79457-6_35} --- bộ dữ liệu bình luận tiếng Việt trên mạng xã hội, đã được gán nhãn sẵn thành 3 lớp: CLEAN (0), OFFENSIVE (1), HATE (2). Bộ dữ liệu được chia sẵn thành 3 tập với tỷ lệ xấp xỉ \textbf{72 / 8 / 20} (Bảng~\ref{tab:data_split}).
+Dữ liệu sử dụng bộ ViHSD \parencite{10.1007/978-3-030-79457-6_35} - bộ dữ liệu bình luận tiếng Việt trên mạng xã hội, đã được gán nhãn sẵn thành 3 lớp: CLEAN (0), OFFENSIVE (1), HATE (2). Bộ dữ liệu được chia sẵn thành 3 tập với tỷ lệ xấp xỉ \textbf{72 / 8 / 20} (Bảng~\ref{tab:data_split}).
 
 \begin{table}[H]
 \centering
@@ -23,15 +23,15 @@ Test & 6{,}527 & 5{,}406 (82.8\%) & 440 (6.7\%) & 681 (10.4\%) \\
 
 \textbf{Lý do sử dụng tỷ lệ này:} Bộ dữ liệu ViHSD đã được chia sẵn bởi tác giả với tỷ lệ stratified (phân bố nhãn đồng nhất giữa các tập). Nhóm giữ nguyên cách chia này để đảm bảo tính so sánh với các nghiên cứu trước. Tập Dev được dùng cho validation trong quá trình tuning hyperparameter, tập Test chỉ dùng để đánh giá cuối cùng.
 
-\textbf{Đặc điểm nổi bật:} Dữ liệu mất cân bằng nghiêm trọng --- lớp CLEAN chiếm $\approx$82\%, trong khi OFFENSIVE chỉ $\approx$7\%. Điều này ảnh hưởng trực tiếp đến hiệu suất phân loại lớp thiểu số.
+\textbf{Đặc điểm nổi bật:} Dữ liệu mất cân bằng nghiêm trọng - lớp CLEAN chiếm $\approx$82\%, trong khi OFFENSIVE chỉ $\approx$7\%. Điều này ảnh hưởng trực tiếp đến hiệu suất phân loại lớp thiểu số.
 
 \subsection{Tiền xử lý dữ liệu}
 
 Dữ liệu thô trải qua hai giai đoạn tiền xử lý trước khi đưa vào mô hình:
 
-\textbf{Giai đoạn 1 --- Làm sạch cấu trúc:} Xóa 2 dòng null trong tập train và loại bỏ 1{,}475 dòng trùng lặp trên cả 3 tập.
+\textbf{Giai đoạn 1 - Làm sạch cấu trúc:} Xóa 2 dòng null trong tập train và loại bỏ 1{,}475 dòng trùng lặp trên cả 3 tập.
 
-\textbf{Giai đoạn 2 --- Chuẩn hóa văn bản NLP} gồm 10 bước tuần tự:
+\textbf{Giai đoạn 2 - Chuẩn hóa văn bản NLP} gồm 10 bước tuần tự:
 \begin{enumerate}
     \item Chuyển lowercase
     \item Xóa HTML tags

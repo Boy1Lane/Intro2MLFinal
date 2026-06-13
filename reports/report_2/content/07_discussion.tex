@@ -40,35 +40,60 @@ Hình~\ref{fig:overfitting} minh họa phân tích overfitting thông qua so sá
 %---------------------------------------------------
 \subsection{Phân tích các trường hợp sai}
 
-Mô hình Voting Ensemble dự đoán sai \textbf{1{,}468 / 6{,}527 mẫu} (22.5\%) trên tập Test. Bảng~\ref{tab:error_types} phân nhóm 5 loại nhầm phổ biến nhất.
+Mô hình PhoBERT-base-v2 dự đoán sai \textbf{941 / 6{,}527 mẫu} (14.4\%) trên tập Test. Bảng~\ref{tab:error_types} phân nhóm 5 loại nhầm phổ biến nhất.
 
 \begin{table}[H]
 \centering
-\caption{Top 5 loại nhầm lẫn phổ biến nhất (Voting Ensemble trên tập Test)}
+\caption{Top 5 loại nhầm lẫn phổ biến nhất (PhoBERT trên tập Test)}
 \label{tab:error_types}
 \begin{tabular}{|l|l|c|l|}
 \hline
 \textbf{Nhãn thực} & \textbf{Nhãn dự đoán} & \textbf{Số mẫu} & \textbf{Giả thuyết nguyên nhân} \\
 \hline
-CLEAN & HATE & 474 & Chứa từ nhạy cảm nhưng ngữ cảnh trung tính \\
-CLEAN & OFFENSIVE & 402 & Văn bản có tone mạnh nhưng không xúc phạm \\
-HATE & CLEAN & 263 & Ngôn ngữ gián tiếp, châm biếm, mỉa mai \\
-OFFENSIVE & CLEAN & 158 & Cường độ tiêu cực thấp, ranh giới mờ \\
-OFFENSIVE & HATE & 100 & Ranh giới giữa xúc phạm và thù ghét không rõ \\
+CLEAN & OFFENSIVE & 275 & Chứa từ nhạy cảm hoặc phóng đại nhưng ngữ cảnh trung tính \\
+CLEAN & HATE & 266 & Chứa từ khóa thường gặp ở bình luận thù ghét nhưng mang ý thảo luận \\
+HATE & CLEAN & 136 & Sử dụng ngôn từ thù ghét gián tiếp, châm biếm, ẩn ý tinh vi \\
+OFFENSIVE & CLEAN & 120 & Ranh giới mờ nhạt giữa ngôn từ thân mật bình thường và xúc phạm nhẹ \\
+OFFENSIVE & HATE & 91 & Nhầm lẫn cường độ công kích cá nhân với thù ghét nhóm đối tượng \\
 \hline
 \end{tabular}
 \end{table}
 
-\textbf{Nhận xét:} Do sử dụng SMOTE để oversampling lớp thiểu số, mô hình có xu hướng dự đoán tích cực hơn cho lớp HATE và OFFENSIVE, dẫn đến nhiều mẫu CLEAN bị nhầm thành HATE (474 mẫu) và OFFENSIVE (402 mẫu). Đây là trade-off điển hình: tăng recall cho lớp thiểu số nhưng giảm precision.
+\textbf{Nhận xét:} Do sử dụng Weighted Cross-Entropy Loss để phạt nặng hơn lỗi trên các lớp thiểu số (HATE và OFFENSIVE), mô hình có xu hướng dự đoán nhạy bén hơn cho các lớp này, dẫn đến một lượng đáng kể mẫu CLEAN bị phân loại nhầm thành OFFENSIVE (275 mẫu) và HATE (266 mẫu). Đây là sự đánh đổi (trade-off) điển hình khi giải quyết mất cân bằng dữ liệu: chấp nhận giảm Precision của lớp đa số để tối đa hóa Recall cho lớp thiểu số quan trọng.
 
 Hình~\ref{fig:error_dist} hiển thị phân bố các loại lỗi.
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.65\textwidth]{figures/error_distribution.png}
-\caption{Phân bố các loại nhầm lẫn của Voting Ensemble trên tập Test}
+\caption{Phân bố các loại nhầm lẫn của PhoBERT trên tập Test}
 \label{fig:error_dist}
 \end{figure}
+
+\subsubsection{Các ví dụ cụ thể về lỗi phân loại}
+
+Để làm rõ hơn hành vi của mô hình, Bảng~\ref{tab:error_examples} trình bày các ví dụ thực tế được trích xuất từ tập Test bị PhoBERT phân loại sai, cùng với lý do phân tích chi tiết.
+
+\begin{table}[H]
+\centering
+\caption{Các ví dụ thực tế bị PhoBERT phân loại sai trên tập Test}
+\label{tab:error_examples}
+\resizebox{\textwidth}{!}{
+\begin{tabular}{|p{6cm}|c|c|p{7cm}|}
+\hline
+\textbf{Văn bản bình luận} & \textbf{Thực tế} & \textbf{Dự đoán} & \textbf{Phân tích lỗi} \\
+\hline
+\textit{"bữa nay nhìn ngon dữ thần nha"} & CLEAN & OFFENSIVE & Từ "ngon" thường xuất hiện trong ngữ cảnh bình luận thô tục, gợi dục (OFFENSIVE). Mô hình chưa nhận diện được sắc thái khen ngợi thân mật trong câu này. \\
+\hline
+\textit{"thằng này ăn tàn phá hại cả một thế hệ học sinh"} & OFFENSIVE & CLEAN & Câu mang tính công kích cá nhân cao nhưng không chứa các từ chửi tục trực tiếp. Do đó, mô hình bỏ sót sắc thái xúc phạm này. \\
+\hline
+\textit{"tụi này chỉ biết làm khổ đất nước thôi, đuổi hết đi"} & HATE & CLEAN & Ngôn từ thù ghét gián tiếp nhắm vào một nhóm người (xenophobia/hate speech). Vì không dùng từ tục tĩu thô thiển nên mô hình không nhận ra tính thù ghét. \\
+\hline
+\textit{"đúng là đồ óc chó không biết suy nghĩ gì"} & OFFENSIVE & HATE & Từ công kích cá nhân nặng ("óc chó") bị mô hình phân loại nhầm thành HATE do nhầm lẫn giữa xúc phạm cá nhân nặng và thù ghét nhóm đối tượng. \\
+\hline
+\end{tabular}
+}
+\end{table}
 
 %---------------------------------------------------
 \subsection{Bảng so sánh hiệu năng giữa các mô hình}
@@ -83,16 +108,23 @@ Bảng~\ref{tab:model_compare} so sánh toàn diện hiệu năng trên cả Dev
 \hline
 \textbf{Mô hình} & \textbf{Dev F1-w} & \textbf{Test F1-w} & \textbf{Best CV Score} & \textbf{Ranking} \\
 \hline
-\textbf{PhoBERT-base-v2} & 0.8629 & \textbf{0.8637} & - & \textbf{1} \\
-Random Forest & - & 0.8079 & 0.9418 & 2 \\
-Multinomial NB & - & 0.8068 & 0.6632 & 3 \\
-Voting Ensemble & - & 0.7921 & - & 4 \\
-Logistic Regression & - & 0.7889 & 0.8932 & 5 \\
-Linear SVC & - & 0.7888 & 0.9033 & 6 \\
-SGD Classifier & - & 0.7746 & 0.7452 & 7 \\
+\textbf{PhoBERT-base-v2} & \textbf{0.8629} & \textbf{0.8637} & - & \textbf{1} \\
+Random Forest & 0.8016 & 0.8080 & 0.9418 & 2 \\
+Multinomial NB & 0.7982 & 0.8068 & 0.6632 & 3 \\
+Voting Ensemble & 0.7853 & 0.7919 & - & 4 \\
+Logistic Regression & 0.7795 & 0.7899 & 0.8932 & 5 \\
+Linear SVC & 0.7901 & 0.7889 & 0.9033 & 6 \\
+SGD Classifier & 0.7676 & 0.7746 & 0.7452 & 7 \\
 \hline
 \end{tabular}
 \end{table}
+
+\textbf{Phân tích về Rò rỉ dữ liệu (Data Leakage):} Nhóm nhận thấy \texttt{Best CV Score} của các mô hình truyền thống (đặc biệt là Random Forest đạt 0.9418, Linear SVC đạt 0.9033, và Logistic Regression đạt 0.8932) cao hơn rất nhiều so với hiệu năng thực tế trên tập Test (chỉ quanh mức 0.78--0.80). 
+
+Nguyên nhân chính của hiện tượng này là do \textbf{rò rỉ dữ liệu (data leakage)} trong quá trình tinh chỉnh siêu tham số bằng \texttt{GridSearchCV}. Cụ thể, SMOTE đã được áp dụng để cân bằng lớp trên toàn bộ dữ liệu huấn luyện \textbf{trước khi} thực hiện phân chia các fold cho Cross-Validation. Khi các mẫu nhân tạo được sinh ra dựa trên khoảng cách của dữ liệu gốc, việc chia fold ngẫu nhiên sau đó sẽ khiến các mẫu nhân tạo rất giống nhau xuất hiện đồng thời ở cả fold huấn luyện (Train fold) và fold kiểm thử (Validation fold). Điều này làm cho điểm số Cross-Validation bị thổi phồng giả tạo (overestimated). 
+
+Để khắc phục triệt để hiện tượng này trong các dự án thực tế, SMOTE cần được nhúng trực tiếp vào một pipeline huấn luyện (ví dụ: sử dụng \texttt{imblearn.pipeline.Pipeline} thay vì \texttt{sklearn.pipeline.Pipeline}) để đảm bảo SMOTE chỉ được áp dụng trên tập huấn luyện của fold đó và hoàn toàn độc lập với fold kiểm thử.
+
 
 Hình~\ref{fig:f1_per_class} so sánh F1-score theo từng lớp cho 6 mô hình truyền thống.
 
