@@ -50,8 +50,20 @@ Lý do Gemini sau backend: giấu key, kiểm soát prompt, re-classify rewrite.
 `ml/preprocessing.py` — port `preprocess_text` + teencode dict từ `notebooks/02_text_preprocessing.ipynb` và `06_model_training.ipynb` (`normalize_teencode`). Một nguồn sự thật, dùng chung mọi endpoint + batch.
 
 ### 4.2 Model registry
-- sklearn (load lúc startup, nhẹ): TF-IDF vectorizer + SVD + 6 model `.pkl` (LR, NB, SVM-calibrated, RF, SGD, Voting). Voting = soft-vote [LR, calibrated-SVM, SGD].
-- PhoBERT: lazy-load lần gọi đầu (torch + transformers, ~500MB), cache.
+Showdown phải dùng **đúng 7 model so sánh trong báo cáo** (bảng metric §06_results), không thừa không thiếu:
+
+| # | Tên (khớp báo cáo) | Serving |
+|---|---|---|
+| 1 | PhoBERT-base-v2 | `vinai/phobert-base-v2` fine-tuned, lazy-load |
+| 2 | Random Forest | `model_rf.pkl` |
+| 3 | Multinomial NB | `model_nb.pkl` |
+| 4 | Voting Ensemble | `model_voting.pkl` = soft-vote [LR, calibrated-SVM, SGD] |
+| 5 | Logistic Regression | `model_lr.pkl` |
+| 6 | Linear SVC | `model_svm.pkl` — bọc CalibratedClassifierCV để có `predict_proba` (LinearSVC gốc không có; nhãn/quyết định không đổi) |
+| 7 | SGD Classifier | `model_sgd.pkl` |
+
+- sklearn (load lúc startup, nhẹ): TF-IDF vectorizer + SVD + 6 model `.pkl` trên.
+- PhoBERT: lazy-load lần gọi đầu (torch + transformers, ~500MB), cache. Base = `vinai/phobert-base-v2` (khớp `MODEL_NAME` trong `06_model_training_DL.ipynb`).
 
 ### 4.3 Endpoints
 | Method | Route | In → Out |
