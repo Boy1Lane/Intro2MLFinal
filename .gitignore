@@ -12,3 +12,7 @@
 *.gz
 *.toc
 report/output/main.run.xml
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
