@@ -1,0 +1,11 @@
+**/__pycache__/
+**/*.pyc
+**/.pytest_cache/
+app/frontend/
+app/backend/tests/
+docs/
+notebooks/
+reports/
+data/
+*.ipynb
+.git/
