@@ -1,0 +1,30 @@
+from pydantic import BaseModel, Field
+
+
+class TextRequest(BaseModel):
+    text: str = Field(min_length=1)
+
+
+class TokenScore(BaseModel):
+    token: str
+    score: float
+
+
+class PredictResponse(BaseModel):
+    label: int
+    label_name: str
+    proba: list[float]
+    tokens: list[TokenScore]
+    model: str
+
+
+class ModelResult(BaseModel):
+    name: str
+    display_name: str
+    label: int
+    proba: list[float]
+    latency_ms: float
+
+
+class ShowdownResponse(BaseModel):
+    models: list[ModelResult]
