@@ -1,5 +1,5 @@
 import type { ModelResult } from "@/lib/api";
-import { labelColor } from "@/lib/labels";
+import { labelColor, labelVi } from "@/lib/labels";
 
 export function ShowdownTable({ models }: { models: ModelResult[] }) {
   const consensus = models.length > 0 && models.every((m) => m.label === models[0].label);
@@ -24,7 +24,7 @@ export function ShowdownTable({ models }: { models: ModelResult[] }) {
             return (
               <tr key={m.name} data-testid="showdown-row" className="border-t">
                 <td className="py-2 font-medium text-slate-700">{m.display_name}</td>
-                <td className={`py-2 font-semibold ${labelColor(m.label)}`}>{m.label}</td>
+                <td className={`py-2 font-semibold ${labelColor(m.label)}`}>{labelVi(m.label)}</td>
                 <td className="py-2 tabular-nums text-slate-600">{conf}%</td>
                 <td className="py-2 tabular-nums text-slate-400">{m.latency_ms} ms</td>
               </tr>

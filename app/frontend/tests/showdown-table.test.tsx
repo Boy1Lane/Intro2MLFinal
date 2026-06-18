@@ -13,6 +13,8 @@ describe("ShowdownTable", () => {
     expect(screen.getAllByTestId("showdown-row")).toHaveLength(2);
     expect(screen.getByText("PhoBERT-base-v2")).toBeInTheDocument();
     expect(screen.getByText("80%")).toBeInTheDocument();
+    // label cell shows the Vietnamese gloss, not the raw integer
+    expect(screen.getAllByText("Thù ghét").length).toBeGreaterThan(0);
   });
   it("shows consensus when all agree", () => {
     render(<ShowdownTable models={models} />);
