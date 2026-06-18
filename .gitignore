@@ -21,3 +21,4 @@ __pycache__/
 app/frontend/node_modules/
 app/frontend/.next/
 app/frontend/.env.local
+app/frontend/tsconfig.tsbuildinfo
