@@ -15,6 +15,7 @@ export function InputBar({ onAnalyze, loading }: { onAnalyze: (t: string) => voi
         value={text}
         onChange={(e) => setText(e.target.value)}
         rows={3}
+        aria-label="Bình luận cần phân tích"
         placeholder="Nhập bình luận tiếng Việt..."
         className="w-full resize-none rounded-lg border border-slate-200 p-3 text-slate-800 outline-none focus:border-slate-400"
       />
