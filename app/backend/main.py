@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.backend.config import get_settings
 from app.backend.routers import predict
+from app.backend.services.phobert import PhoBertService
 from app.backend.services.sklearn_registry import SklearnRegistry
 
 
@@ -14,7 +15,7 @@ async def lifespan(app: FastAPI):
     app.state.settings = settings
     app.state.registry = SklearnRegistry(settings.artifacts_dir)
     app.state.registry.load()
-    app.state.phobert = None  # wired in Task 6
+    app.state.phobert = PhoBertService(settings.phobert_repo)
     yield
 
 

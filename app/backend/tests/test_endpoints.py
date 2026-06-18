@@ -40,3 +40,26 @@ def test_showdown_returns_six_without_phobert(client):
     names = [m["name"] for m in r.json()["models"]]
     assert "PhoBERT" not in names
     assert len(names) == 6
+
+
+def test_showdown_includes_phobert_when_available(artifacts_dir, monkeypatch):
+    monkeypatch.setenv("ARTIFACTS_DIR", str(artifacts_dir))
+    from app.backend.config import get_settings
+    get_settings.cache_clear()
+    from app.backend.main import create_app
+    app = create_app()
+
+    class FakePhoBert:
+        available = True
+        def predict_proba(self, text):
+            return [0.1, 0.2, 0.7]
+
+    with TestClient(app) as c:
+        app.state.phobert = FakePhoBert()
+        r = c.post("/showdown", json={"text": "diệt sạch bọn chúng đi"})
+        names = [m["name"] for m in r.json()["models"]]
+        assert names[0] == "PhoBERT"
+        assert len(names) == 7
+        r2 = c.post("/predict", json={"text": "diệt sạch bọn chúng đi"})
+        assert r2.json()["model"] == "PhoBERT-base-v2"
+        assert r2.json()["label"] == 2
