@@ -40,3 +40,17 @@ class RewriteResponse(BaseModel):
     rewritten: str
     before: Verdict
     after: Verdict
+
+
+class BatchRow(BaseModel):
+    text: str
+    label: int
+    label_name: str
+    proba: list[float]
+
+
+class BatchResponse(BaseModel):
+    total: int
+    counts: dict[str, int]
+    toxic_ratio: float
+    rows: list[BatchRow]

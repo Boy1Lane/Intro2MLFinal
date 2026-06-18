@@ -80,3 +80,24 @@ def test_rewrite_503_without_key(client):
     # default test env has no GEMINI_API_KEY -> graceful failure
     r = client.post("/rewrite", json={"text": "đồ ngốc"})
     assert r.status_code == 503
+
+
+import io
+
+
+def test_batch_scores_csv(client):
+    csv = "free_text\ncảm ơn bạn nhiều nhé\nmày ngu thế không hiểu gì\n"
+    files = {"file": ("c.csv", io.BytesIO(csv.encode("utf-8")), "text/csv")}
+    r = client.post("/batch", files=files)
+    assert r.status_code == 200
+    body = r.json()
+    assert body["total"] == 2
+    assert set(body["counts"]) == {"CLEAN", "OFFENSIVE", "HATE"}
+    assert len(body["rows"]) == 2
+
+
+def test_batch_rejects_missing_column(client):
+    csv = "wrong\nhello\n"
+    files = {"file": ("c.csv", io.BytesIO(csv.encode("utf-8")), "text/csv")}
+    r = client.post("/batch", files=files)
+    assert r.status_code == 400
