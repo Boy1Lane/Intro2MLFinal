@@ -41,6 +41,7 @@ export default function StudioPage() {
       )}
 
       {showdownM.isPending && <Spinner label="Đang chạy 7 mô hình..." />}
+      {showdownM.isError && <ErrorNote message={(showdownM.error as Error).message} />}
       {showdownM.data && <ShowdownTable models={showdownM.data.models} />}
 
       {predictM.data && (
