@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.backend.config import get_settings
-from app.backend.routers import predict
+from app.backend.routers import predict, rewrite
 from app.backend.services.phobert import PhoBertService
 from app.backend.services.sklearn_registry import SklearnRegistry
 
@@ -29,6 +29,7 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     app.include_router(predict.router)
+    app.include_router(rewrite.router)
 
     @app.get("/health")
     def health():

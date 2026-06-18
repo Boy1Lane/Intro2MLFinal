@@ -63,3 +63,20 @@ def test_showdown_includes_phobert_when_available(artifacts_dir, monkeypatch):
         r2 = c.post("/predict", json={"text": "diệt sạch bọn chúng đi"})
         assert r2.json()["model"] == "PhoBERT-base-v2"
         assert r2.json()["label"] == 2
+
+
+def test_rewrite_loop(client, monkeypatch):
+    import app.backend.routers.rewrite as rw
+    monkeypatch.setattr(rw, "rewrite_polite",
+                        lambda text, api_key: "cảm ơn bạn nhiều nhé")
+    r = client.post("/rewrite", json={"text": "mày ngu thế không hiểu gì"})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["rewritten"] == "cảm ơn bạn nhiều nhé"
+    assert "label" in body["before"] and "label" in body["after"]
+
+
+def test_rewrite_503_without_key(client):
+    # default test env has no GEMINI_API_KEY -> graceful failure
+    r = client.post("/rewrite", json={"text": "đồ ngốc"})
+    assert r.status_code == 503

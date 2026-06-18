@@ -28,3 +28,15 @@ class ModelResult(BaseModel):
 
 class ShowdownResponse(BaseModel):
     models: list[ModelResult]
+
+
+class Verdict(BaseModel):
+    label: int
+    label_name: str
+    proba: list[float]
+
+
+class RewriteResponse(BaseModel):
+    rewritten: str
+    before: Verdict
+    after: Verdict
