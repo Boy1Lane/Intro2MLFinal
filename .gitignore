@@ -16,3 +16,8 @@ __pycache__/
 *.pyc
 *.pyo
 .pytest_cache/
+
+# Frontend build artifacts
+app/frontend/node_modules/
+app/frontend/.next/
+app/frontend/.env.local
