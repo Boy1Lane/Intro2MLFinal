@@ -22,3 +22,10 @@ app/frontend/node_modules/
 app/frontend/.next/
 app/frontend/.env.local
 app/frontend/tsconfig.tsbuildinfo
+
+# Superpowers working docs (kept local, not tracked)
+docs/superpowers/
+
+# Model artifacts (too large for git; push to HF Hub)
+artifacts/
+phobert/
