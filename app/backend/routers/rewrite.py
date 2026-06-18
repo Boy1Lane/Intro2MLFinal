@@ -11,9 +11,8 @@ router = APIRouter()
 def _verdict(request: Request, text: str) -> Verdict:
     reg = request.app.state.registry
     phobert = request.app.state.phobert
-    if phobert is not None and phobert.available:
-        proba = [float(p) for p in phobert.predict_proba(text)]
-    else:
+    proba = phobert.try_proba(text) if phobert is not None else None
+    if proba is None:
         proba = [float(p) for p in reg.predict_proba("LogisticRegression", text)]
     label = int(np.argmax(proba))
     return Verdict(label=label, label_name=LABEL_NAMES[label], proba=proba)

@@ -39,6 +39,19 @@ class PhoBertService:
             self._failed = True
             return False
 
+    def try_proba(self, raw_text: str) -> list[float] | None:
+        """Predict, degrading to None on any load/inference failure.
+
+        Routers call this so a PhoBERT problem (missing torch, bad repo, OOM)
+        degrades to the sklearn models instead of raising a 500 (spec §4.6).
+        """
+        if not self.available:
+            return None
+        try:
+            return self.predict_proba(raw_text)
+        except Exception:
+            return None
+
     def predict_proba(self, raw_text: str) -> list[float]:
         if not self._ensure_loaded():
             raise RuntimeError("PhoBERT unavailable")

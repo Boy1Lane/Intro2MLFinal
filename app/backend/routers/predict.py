@@ -24,8 +24,8 @@ def predict(req: TextRequest, request: Request) -> PredictResponse:
     text = _validate(req, request.app.state.settings.max_text_len)
     reg = request.app.state.registry
     phobert = request.app.state.phobert
-    if phobert is not None and phobert.available:
-        proba = [float(p) for p in phobert.predict_proba(text)]
+    proba = phobert.try_proba(text) if phobert is not None else None
+    if proba is not None:
         model = "PhoBERT-base-v2"
     else:
         proba = [float(p) for p in reg.predict_proba("LogisticRegression", text)]
@@ -44,14 +44,15 @@ def showdown(req: TextRequest, request: Request) -> ShowdownResponse:
     reg = request.app.state.registry
     phobert = request.app.state.phobert
     results = []
-    if phobert is not None and phobert.available:
+    if phobert is not None:
         t0 = time.perf_counter()
-        proba = [float(p) for p in phobert.predict_proba(text)]
+        proba = phobert.try_proba(text)
         dt = (time.perf_counter() - t0) * 1000
-        results.append({
-            "name": "PhoBERT", "label": int(np.argmax(proba)),
-            "proba": proba, "latency_ms": round(dt, 2),
-        })
+        if proba is not None:
+            results.append({
+                "name": "PhoBERT", "label": int(np.argmax(proba)),
+                "proba": [float(p) for p in proba], "latency_ms": round(dt, 2),
+            })
     results.extend(reg.predict_all(text))
     # order by MODEL_ORDER
     order = {n: i for i, n in enumerate(MODEL_ORDER)}
