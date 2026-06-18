@@ -103,6 +103,21 @@ def test_batch_rejects_missing_column(client):
     assert r.status_code == 400
 
 
+def test_batch_rejects_oversized_upload(artifacts_dir, monkeypatch):
+    monkeypatch.setenv("ARTIFACTS_DIR", str(artifacts_dir))
+    monkeypatch.setenv("MAX_UPLOAD_BYTES", "100")
+    from app.backend.config import get_settings
+    get_settings.cache_clear()
+    from app.backend.main import create_app
+    app = create_app()
+    big_csv = "free_text\n" + ("x" * 200) + "\n"
+    files = {"file": ("big.csv", io.BytesIO(big_csv.encode("utf-8")), "text/csv")}
+    with TestClient(app) as c:
+        r = c.post("/batch", files=files)
+    assert r.status_code == 413
+    get_settings.cache_clear()
+
+
 def test_insights(client):
     r = client.get("/insights")
     assert r.status_code == 200

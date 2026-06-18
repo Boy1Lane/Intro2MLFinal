@@ -56,11 +56,15 @@ class SklearnRegistry:
         raise ValueError(kind)
 
     def predict_proba(self, name: str, raw_text: str) -> list[float]:
+        if name not in self.models:
+            raise ValueError(f"Unknown model: {name!r}")
         cleaned = clean_for_sklearn(raw_text)
         if name == "VotingEnsemble":
             X = self._features("tfidf", cleaned)
-            members = self.models["VotingEnsemble"]
-            probas = [m.predict_proba(X)[0] for m in members.values()]
+            voting = self.models["VotingEnsemble"]
+            if hasattr(voting, "predict_proba"):
+                return list(voting.predict_proba(X)[0])
+            probas = [m.predict_proba(X)[0] for m in voting.values()]
             return list(np.mean(probas, axis=0))
         X = self._features(_FEATURES[name], cleaned)
         return list(self.models[name].predict_proba(X)[0])

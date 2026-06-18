@@ -12,6 +12,7 @@ class Settings:
         self.cors_origins = [o.strip() for o in origins.split(",") if o.strip()]
         self.max_text_len = int(os.getenv("MAX_TEXT_LEN", "5000"))
         self.max_batch_rows = int(os.getenv("MAX_BATCH_ROWS", "5000"))
+        self.max_upload_bytes = int(os.getenv("MAX_UPLOAD_BYTES", "10_000_000".replace("_", "")))
 
 
 @lru_cache

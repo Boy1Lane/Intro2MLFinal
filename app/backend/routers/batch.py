@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from fastapi import APIRouter, HTTPException, Request, UploadFile
 
+from app.backend.config import get_settings
 from app.backend.constants import LABEL_NAMES
 from app.backend.schemas import BatchResponse, BatchRow
 
@@ -12,7 +13,12 @@ router = APIRouter()
 
 @router.post("/batch", response_model=BatchResponse)
 async def batch(request: Request, file: UploadFile) -> BatchResponse:
+    settings = get_settings()
+    if file.size is not None and file.size > settings.max_upload_bytes:
+        raise HTTPException(status_code=413, detail="File quá lớn.")
     raw = await file.read()
+    if len(raw) > settings.max_upload_bytes:
+        raise HTTPException(status_code=413, detail="File quá lớn.")
     try:
         df = pd.read_csv(io.BytesIO(raw))
     except Exception as e:  # noqa: BLE001
