@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.backend.config import get_settings
-from app.backend.routers import predict, rewrite, batch
+from app.backend.routers import predict, rewrite, batch, insights
 from app.backend.services.phobert import PhoBertService
 from app.backend.services.sklearn_registry import SklearnRegistry
 
@@ -31,6 +31,7 @@ def create_app() -> FastAPI:
     app.include_router(predict.router)
     app.include_router(rewrite.router)
     app.include_router(batch.router)
+    app.include_router(insights.router)
 
     @app.get("/health")
     def health():

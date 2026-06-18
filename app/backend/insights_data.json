@@ -1,0 +1,12 @@
+{
+  "best": "PhoBERT-base-v2",
+  "models": [
+    {"display_name": "PhoBERT-base-v2", "accuracy": 0.8558, "precision_w": 0.8733, "recall_w": 0.8558, "f1_w": 0.8637, "f1_macro": 0.6703},
+    {"display_name": "Random Forest", "accuracy": 0.8290, "precision_w": 0.7975, "recall_w": 0.8290, "f1_w": 0.8080, "f1_macro": 0.5101},
+    {"display_name": "Multinomial NB", "accuracy": 0.7907, "precision_w": 0.8317, "recall_w": 0.7907, "f1_w": 0.8068, "f1_macro": 0.5622},
+    {"display_name": "Voting Ensemble", "accuracy": 0.7749, "precision_w": 0.8155, "recall_w": 0.7749, "f1_w": 0.7919, "f1_macro": 0.5455},
+    {"display_name": "Logistic Regression", "accuracy": 0.7717, "precision_w": 0.8158, "recall_w": 0.7717, "f1_w": 0.7899, "f1_macro": 0.5468},
+    {"display_name": "Linear SVC", "accuracy": 0.7736, "precision_w": 0.8093, "recall_w": 0.7736, "f1_w": 0.7889, "f1_macro": 0.5367},
+    {"display_name": "SGD Classifier", "accuracy": 0.7446, "precision_w": 0.8252, "recall_w": 0.7446, "f1_w": 0.7746, "f1_macro": 0.5406}
+  ]
+}

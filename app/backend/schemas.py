@@ -54,3 +54,17 @@ class BatchResponse(BaseModel):
     counts: dict[str, int]
     toxic_ratio: float
     rows: list[BatchRow]
+
+
+class ModelMetric(BaseModel):
+    display_name: str
+    accuracy: float
+    precision_w: float
+    recall_w: float
+    f1_w: float
+    f1_macro: float
+
+
+class InsightsResponse(BaseModel):
+    best: str
+    models: list[ModelMetric]

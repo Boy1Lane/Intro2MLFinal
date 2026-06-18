@@ -101,3 +101,12 @@ def test_batch_rejects_missing_column(client):
     files = {"file": ("c.csv", io.BytesIO(csv.encode("utf-8")), "text/csv")}
     r = client.post("/batch", files=files)
     assert r.status_code == 400
+
+
+def test_insights(client):
+    r = client.get("/insights")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["best"] == "PhoBERT-base-v2"
+    assert len(body["models"]) == 7
+    assert body["models"][0]["f1_macro"] == 0.6703
