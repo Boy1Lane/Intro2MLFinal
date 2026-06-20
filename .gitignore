@@ -23,6 +23,9 @@ app/frontend/.next/
 app/frontend/.env.local
 app/frontend/tsconfig.tsbuildinfo
 
+# Backend secrets (.env.example is tracked)
+/.env
+
 # Superpowers working docs (kept local, not tracked)
 docs/superpowers/
 

@@ -2,5 +2,50 @@
 @tailwind components;
 @tailwind utilities;
 
-:root { color-scheme: light; }
-body { @apply bg-slate-50 text-slate-900 antialiased; }
+:root {
+  color-scheme: light;
+  --signal-clean: #10b981;
+  --signal-offensive: #f59e0b;
+  --signal-hate: #ef4444;
+  --brand: #4f46e5;
+}
+
+body {
+  @apply text-slate-900 antialiased;
+  /* Calm "control-room" canvas: cool off-white with a faint top-light wash. */
+  background:
+    radial-gradient(60rem 32rem at 85% -8%, rgba(79, 70, 229, 0.07), transparent 60%),
+    radial-gradient(50rem 30rem at 0% 0%, rgba(16, 185, 129, 0.05), transparent 55%),
+    linear-gradient(180deg, #fbfcfe 0%, #f1f4f9 100%);
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+
+/* Surface = the shared card treatment used across every panel. */
+.surface {
+  @apply rounded-2xl border border-slate-200/80 bg-white/90 shadow-sm ring-1 ring-slate-900/[0.02] backdrop-blur-sm;
+}
+
+/* Eyebrow = small structural label above section headings. */
+.eyebrow {
+  @apply text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-slate-400;
+}
+
+/* Keep the data/numeric voice in mono. */
+.tnum {
+  font-feature-settings: "tnum";
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  @apply outline-none ring-2 ring-indigo-500/60 ring-offset-2 ring-offset-white;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}

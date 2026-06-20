@@ -20,8 +20,8 @@ export function BatchDashboard({ data }: { data: BatchResponse }) {
         <Stat label="Tỉ lệ độc hại" value={`${Math.round(data.toxic_ratio * 100)}%`} />
         <Stat label="HATE" value={String(data.counts.HATE ?? 0)} />
       </div>
-      <div className="rounded-2xl border bg-white p-4 shadow-sm">
-        <h3 className="mb-2 font-semibold text-slate-800">Phân bố nhãn</h3>
+      <div className="surface p-5">
+        <h3 className="eyebrow mb-3">Phân bố nhãn</h3>
         <div className="h-56">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
@@ -33,13 +33,13 @@ export function BatchDashboard({ data }: { data: BatchResponse }) {
           </ResponsiveContainer>
         </div>
       </div>
-      <div className="rounded-2xl border bg-white p-4 shadow-sm">
-        <h3 className="mb-3 font-semibold text-slate-800">Bình luận độc hại nhất</h3>
+      <div className="surface p-5">
+        <h3 className="eyebrow mb-3">Bình luận độc hại nhất</h3>
         <ul className="space-y-1 text-sm">
           {topToxic.map((r, i) => (
-            <li key={i} data-testid="toxic-row" className="flex items-center justify-between gap-3 border-t py-2">
+            <li key={i} data-testid="toxic-row" className="flex items-center justify-between gap-3 border-t border-slate-100 py-2">
               <span className="truncate text-slate-700">{r.text}</span>
-              <span className={`shrink-0 font-semibold ${labelColor(r.label)}`}>{Math.round(r.proba[2] * 100)}%</span>
+              <span className={`shrink-0 font-mono tnum font-semibold ${labelColor(r.label)}`}>{Math.round(r.proba[2] * 100)}%</span>
             </li>
           ))}
         </ul>
@@ -50,9 +50,9 @@ export function BatchDashboard({ data }: { data: BatchResponse }) {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border bg-white p-4 shadow-sm">
-      <div className="text-2xl font-bold text-slate-900">{value}</div>
-      <div className="text-xs text-slate-500">{label}</div>
+    <div className="surface p-4">
+      <div className="font-mono text-2xl font-bold tnum text-slate-900">{value}</div>
+      <div className="mt-0.5 text-xs text-slate-500">{label}</div>
     </div>
   );
 }

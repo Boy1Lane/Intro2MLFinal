@@ -5,6 +5,9 @@ from fastapi.testclient import TestClient
 @pytest.fixture()
 def client(artifacts_dir, monkeypatch):
     monkeypatch.setenv("ARTIFACTS_DIR", str(artifacts_dir))
+    # A local .env (auto-loaded by config) may set PHOBERT_REPO; the default
+    # client must run without PhoBERT so env-dependent tests stay deterministic.
+    monkeypatch.delenv("PHOBERT_REPO", raising=False)
     from app.backend.config import get_settings
     get_settings.cache_clear()
     from app.backend.main import create_app

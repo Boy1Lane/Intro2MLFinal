@@ -9,10 +9,10 @@ export function RewriteCard({ data }: { data: RewriteResponse }) {
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-2xl border bg-white p-5 shadow-sm"
+      className="rounded-2xl border border-emerald-200 bg-emerald-50/40 p-5"
     >
-      <h3 className="mb-2 font-semibold text-slate-800">Gợi ý viết lại lịch sự</h3>
-      <p className="mb-4 rounded-lg bg-slate-50 p-3 text-slate-700">{data.rewritten}</p>
+      <h3 className="eyebrow mb-2">Gợi ý viết lại lịch sự</h3>
+      <p className="mb-4 rounded-lg border border-emerald-100 bg-white p-3 text-slate-700">{data.rewritten}</p>
       <div className="flex items-center gap-3 text-sm">
         <span className={`font-semibold ${labelColor(data.before.label)}`}>{labelVi(data.before.label)}</span>
         <ArrowRight className="h-4 w-4 text-slate-400" />

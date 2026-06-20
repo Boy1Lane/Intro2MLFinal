@@ -2,6 +2,15 @@ import os
 from functools import lru_cache
 from pathlib import Path
 
+try:
+    # Auto-load a project-root .env when present (dev convenience).
+    # python-dotenv ships with uvicorn[standard]; skip silently if absent.
+    from dotenv import load_dotenv
+
+    load_dotenv()
+except ImportError:
+    pass
+
 
 class Settings:
     def __init__(self) -> None:

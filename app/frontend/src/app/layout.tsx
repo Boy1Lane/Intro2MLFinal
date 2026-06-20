@@ -1,26 +1,39 @@
 import "./globals.css";
 import type { Metadata } from "next";
-import Link from "next/link";
+import { Be_Vietnam_Pro, IBM_Plex_Mono } from "next/font/google";
 import { Providers } from "./providers";
+import { SiteNav } from "@/components/SiteNav";
+
+const sans = Be_Vietnam_Pro({
+  subsets: ["latin", "vietnamese"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-sans",
+  display: "swap",
+});
+
+const mono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  variable: "--font-mono",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "ViHSD Moderation Studio",
-  description: "Phát hiện ngôn từ thù ghét tiếng Việt",
+  description: "Phát hiện ngôn từ thù ghét tiếng Việt — phân loại CLEAN / OFFENSIVE / HATE",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="vi">
-      <body>
+    <html lang="vi" className={`${sans.variable} ${mono.variable}`}>
+      <body className="font-sans">
         <Providers>
-          <header className="border-b bg-white">
-            <nav className="mx-auto flex max-w-5xl items-center gap-6 px-4 py-3">
-              <Link href="/" className="font-semibold text-slate-900">🛡️ ViHSD Studio</Link>
-              <Link href="/simulate" className="text-sm text-slate-600 hover:text-slate-900">Mô phỏng</Link>
-              <Link href="/insights" className="text-sm text-slate-600 hover:text-slate-900">Kết quả mô hình</Link>
-            </nav>
-          </header>
-          <main className="mx-auto max-w-5xl px-4 py-6">{children}</main>
+          <SiteNav />
+          <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
+          <footer className="mx-auto max-w-6xl px-4 pb-10 pt-4 text-xs text-slate-400">
+            ViHSD Moderation Studio · 7 mô hình tiếng Việt (6 sklearn + PhoBERT-base-v2) ·
+            Kết quả mang tính hỗ trợ kiểm duyệt, không thay thế quyết định của con người.
+          </footer>
         </Providers>
       </body>
     </html>
