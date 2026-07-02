@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, RefreshCw, Trash2, Check, Plus } from "lucide-react";
 import {
   listWatches, createWatch, getWatch, scanWatch, ackWatch, deleteWatch,
-  type WatchSummary, type WatchDetail,
+  type WatchSummary,
 } from "@/lib/api";
 import { labelVi, labelColor, labelSoftBg } from "@/lib/labels";
 
@@ -28,9 +28,9 @@ export default function MonitorPage() {
     onSuccess: () => { setUrl(""); setLabel(""); setError(null); refresh(); },
     onError: (e: Error) => setError(e.message),
   });
-  const scan = useMutation({ mutationFn: scanWatch, onSuccess: refresh });
-  const ack = useMutation({ mutationFn: ackWatch, onSuccess: refresh });
-  const remove = useMutation({ mutationFn: deleteWatch, onSuccess: refresh });
+  const scan = useMutation({ mutationFn: scanWatch, onSuccess: refresh, onError: (e: Error) => setError(e.message) });
+  const ack = useMutation({ mutationFn: ackWatch, onSuccess: refresh, onError: (e: Error) => setError(e.message) });
+  const remove = useMutation({ mutationFn: deleteWatch, onSuccess: refresh, onError: (e: Error) => setError(e.message) });
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-8">
@@ -129,8 +129,8 @@ function WatchCard({ watch, open, onToggle, onScan, onAck, onDelete, scanning }:
           {detail.data?.comments.length === 0 && (
             <p className="text-xs text-slate-400">Chưa trích được bình luận nào.</p>
           )}
-          {detail.data?.comments.slice().reverse().map((c, i) => (
-            <div key={i} className={`rounded-lg p-2 text-sm ${labelSoftBg(c.label)}`}>
+          {detail.data?.comments.slice().reverse().map((c) => (
+            <div key={`${c.seen_at}-${c.text}`} className={`rounded-lg p-2 text-sm ${labelSoftBg(c.label)}`}>
               <div className="flex items-center justify-between gap-2">
                 <span className={`text-xs font-medium ${labelColor(c.label)}`}>
                   {labelVi(c.label)}
