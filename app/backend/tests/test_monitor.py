@@ -1,3 +1,5 @@
+import json
+
 import numpy as np
 import pytest
 
@@ -129,3 +131,32 @@ def test_persistence_round_trip(tmp_path):
     assert len(w2.comments) == 1
     assert w2.alert_count == 1
     assert isinstance(w2.seen_hashes, set)
+
+
+def test_load_survives_corrupt_file(tmp_path):
+    settings = Settings(tmp_path)
+    settings.monitor_state_path.parent.mkdir(parents=True, exist_ok=True)
+    settings.monitor_state_path.write_text("{not json", encoding="utf-8")
+    svc = MonitorService(FakeRegistry(), None, settings)
+    svc.load()  # must not raise
+    assert svc.list() == []
+
+
+def test_load_survives_bad_shape(tmp_path):
+    settings = Settings(tmp_path)
+    settings.monitor_state_path.parent.mkdir(parents=True, exist_ok=True)
+    settings.monitor_state_path.write_text('[{"nope": 1}]', encoding="utf-8")
+    svc = MonitorService(FakeRegistry(), None, settings)
+    svc.load()  # must not raise
+    assert svc.list() == []
+
+
+def test_save_is_atomic_no_partial_file(tmp_path):
+    svc, _ = make_service(tmp_path, [])
+    svc.add("https://ex.com/a")
+    svc.save()
+    path = svc.settings.monitor_state_path
+    content = path.read_text(encoding="utf-8")
+    json.loads(content)  # must not raise — file must be valid JSON
+    tmp_file = path.with_suffix(path.suffix + ".tmp")
+    assert not tmp_file.exists()

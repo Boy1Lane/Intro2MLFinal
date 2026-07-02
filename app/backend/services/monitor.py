@@ -1,5 +1,6 @@
 import hashlib
 import json
+import os
 import threading
 import uuid
 from dataclasses import asdict, dataclass, field
@@ -47,6 +48,15 @@ class Watch:
 
 
 class MonitorService:
+    """
+    In-memory watch registry with background scanning and JSON persistence.
+
+    NOTE: This service assumes a single process/worker. Running multiple uvicorn
+    workers will cause diverging in-memory state and duplicate scans; a shared
+    external store (e.g. Redis or a database) would be required for multi-worker
+    deployment.
+    """
+
     def __init__(self, registry, phobert, settings, fetch=fetch_comments):
         self.registry = registry
         self.phobert = phobert
@@ -54,6 +64,7 @@ class MonitorService:
         self._fetch = fetch
         self._watches: dict[str, Watch] = {}
         self._lock = threading.Lock()
+        self._io_lock = threading.Lock()  # serializes file I/O in save()
 
     # ---- CRUD ---------------------------------------------------------
     def add(self, url: str, label: str | None = None) -> Watch:
@@ -148,16 +159,19 @@ class MonitorService:
 
     # ---- persistence --------------------------------------------------
     def save(self) -> None:
-        # Snapshot under lock; write file outside (no lock held during I/O)
+        # Snapshot under _lock; file I/O is serialized by _io_lock (never nested)
         with self._lock:
             data = []
             for w in self._watches.values():
                 d = asdict(w)
                 d["seen_hashes"] = list(w.seen_hashes)
                 data.append(d)
-        tmp = self.settings.monitor_state_path
-        tmp.parent.mkdir(parents=True, exist_ok=True)
-        tmp.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+        path = self.settings.monitor_state_path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp_path = path.with_suffix(path.suffix + ".tmp")
+        with self._io_lock:
+            tmp_path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+            os.replace(tmp_path, path)
 
     def load(self) -> None:
         path = self.settings.monitor_state_path
@@ -165,16 +179,16 @@ class MonitorService:
             return
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
-        except (json.JSONDecodeError, OSError):
+            watches: dict[str, Watch] = {}
+            for d in data:
+                comments = [Comment(**c) for c in d.get("comments", [])]
+                watches[d["id"]] = Watch(
+                    id=d["id"], url=d["url"], label=d.get("label"),
+                    created_at=d.get("created_at", _now()),
+                    last_scan=d.get("last_scan"), last_error=d.get("last_error"),
+                    alert_count=d.get("alert_count", 0), comments=comments,
+                    seen_hashes=set(d.get("seen_hashes", [])),
+                )
+            self._watches = watches
+        except Exception:
             return
-        watches: dict[str, Watch] = {}
-        for d in data:
-            comments = [Comment(**c) for c in d.get("comments", [])]
-            watches[d["id"]] = Watch(
-                id=d["id"], url=d["url"], label=d.get("label"),
-                created_at=d.get("created_at", _now()),
-                last_scan=d.get("last_scan"), last_error=d.get("last_error"),
-                alert_count=d.get("alert_count", 0), comments=comments,
-                seen_hashes=set(d.get("seen_hashes", [])),
-            )
-        self._watches = watches
