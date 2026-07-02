@@ -4,8 +4,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.backend.config import get_settings
-from app.backend.routers import predict, rewrite, batch, insights
+from app.backend.routers import predict, rewrite, batch, insights, monitor
+from app.backend.services.monitor import MonitorService
 from app.backend.services.phobert import PhoBertService
+from app.backend.services.scheduler import MonitorScheduler
 from app.backend.services.sklearn_registry import SklearnRegistry
 
 
@@ -16,7 +18,16 @@ async def lifespan(app: FastAPI):
     app.state.registry = SklearnRegistry(settings.artifacts_dir)
     app.state.registry.load()
     app.state.phobert = PhoBertService(settings.phobert_repo)
-    yield
+    app.state.monitor = MonitorService(app.state.registry, app.state.phobert,
+                                       settings)
+    app.state.monitor.load()
+    app.state.monitor_scheduler = MonitorScheduler(
+        app.state.monitor, settings.monitor_interval_sec)
+    app.state.monitor_scheduler.start()
+    try:
+        yield
+    finally:
+        app.state.monitor_scheduler.shutdown()
 
 
 def create_app() -> FastAPI:
@@ -32,6 +43,7 @@ def create_app() -> FastAPI:
     app.include_router(rewrite.router)
     app.include_router(batch.router)
     app.include_router(insights.router)
+    app.include_router(monitor.router)
 
     @app.get("/health")
     def health():

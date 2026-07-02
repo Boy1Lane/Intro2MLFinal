@@ -68,3 +68,34 @@ class ModelMetric(BaseModel):
 class InsightsResponse(BaseModel):
     best: str
     models: list[ModelMetric]
+
+
+class MonitorComment(BaseModel):
+    text: str
+    label: int
+    label_name: str
+    proba: list[float]
+    toxic: bool
+    model: str
+    seen_at: str
+
+
+class WatchSummary(BaseModel):
+    id: str
+    url: str
+    label: str | None = None
+    created_at: str
+    last_scan: str | None = None
+    last_error: str | None = None
+    alert_count: int
+    total_comments: int
+    toxic_count: int
+
+
+class WatchDetail(WatchSummary):
+    comments: list[MonitorComment]
+
+
+class CreateWatchRequest(BaseModel):
+    url: str = Field(min_length=1)
+    label: str | None = None
