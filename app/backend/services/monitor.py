@@ -82,7 +82,8 @@ class MonitorService:
         watch = self._watches.get(watch_id)
         if watch is None:
             return None
-        watch.alert_count = 0
+        with self._lock:
+            watch.alert_count = 0
         self.save()
         return watch
 
@@ -107,29 +108,37 @@ class MonitorService:
         watch = self._watches.get(watch_id)
         if watch is None:
             return None
+        # Fetch is slow (network) — keep outside the lock
         try:
-            raw = self._fetch(watch.url, max_len=self.settings.__dict__.get(
-                "max_text_len", 5000))
+            raw = self._fetch(watch.url, max_len=getattr(
+                self.settings, "max_text_len", 5000))
         except FetchError as e:
-            watch.last_error = str(e)
-            watch.last_scan = _now()
+            with self._lock:
+                watch.last_error = str(e)
+                watch.last_scan = _now()
             self.save()
             return watch
-        new_texts = [t for t in raw if _hash(t) not in watch.seen_hashes]
+        # Pre-filter using a snapshot of seen_hashes (race-ok; re-checked under lock)
+        seen_snapshot = set(watch.seen_hashes)
         cap = self.settings.monitor_max_comments_per_scan
-        new_texts = new_texts[:cap]
-        for text in new_texts:
-            comment = self.classify(text)
-            watch.seen_hashes.add(comment.hash)
-            watch.comments.append(comment)
-            if comment.toxic:
-                watch.alert_count += 1
-        # FIFO cap on stored comments
-        max_c = self.settings.monitor_max_comments
-        if len(watch.comments) > max_c:
-            watch.comments = watch.comments[-max_c:]
-        watch.last_error = None
-        watch.last_scan = _now()
+        new_texts = [t for t in raw if _hash(t) not in seen_snapshot][:cap]
+        # Classify outside the lock (PhoBERT inference is slow)
+        classified = [self.classify(text) for text in new_texts]
+        # Mutation block under lock
+        with self._lock:
+            for comment in classified:
+                # Re-check: a concurrent scan may have added this hash already
+                if comment.hash not in watch.seen_hashes:
+                    watch.seen_hashes.add(comment.hash)
+                    watch.comments.append(comment)
+                    if comment.toxic:
+                        watch.alert_count += 1
+            # FIFO cap on stored comments
+            max_c = self.settings.monitor_max_comments
+            if len(watch.comments) > max_c:
+                watch.comments = watch.comments[-max_c:]
+            watch.last_error = None
+            watch.last_scan = _now()
         self.save()
         return watch
 
@@ -139,11 +148,13 @@ class MonitorService:
 
     # ---- persistence --------------------------------------------------
     def save(self) -> None:
-        data = []
-        for w in self._watches.values():
-            d = asdict(w)
-            d["seen_hashes"] = list(w.seen_hashes)
-            data.append(d)
+        # Snapshot under lock; write file outside (no lock held during I/O)
+        with self._lock:
+            data = []
+            for w in self._watches.values():
+                d = asdict(w)
+                d["seen_hashes"] = list(w.seen_hashes)
+                data.append(d)
         tmp = self.settings.monitor_state_path
         tmp.parent.mkdir(parents=True, exist_ok=True)
         tmp.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
