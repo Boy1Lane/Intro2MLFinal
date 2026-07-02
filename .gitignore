@@ -32,3 +32,6 @@ docs/superpowers/
 # Model artifacts (too large for git; push to HF Hub)
 artifacts/
 phobert/
+
+# Monitor watchlist runtime state
+monitor_state.json

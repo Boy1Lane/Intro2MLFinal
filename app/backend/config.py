@@ -22,6 +22,13 @@ class Settings:
         self.max_text_len = int(os.getenv("MAX_TEXT_LEN", "5000"))
         self.max_batch_rows = int(os.getenv("MAX_BATCH_ROWS", "5000"))
         self.max_upload_bytes = int(os.getenv("MAX_UPLOAD_BYTES", "10_000_000".replace("_", "")))
+        self.monitor_interval_sec = int(os.getenv("MONITOR_INTERVAL_SEC", "300"))
+        self.monitor_max_comments_per_scan = int(
+            os.getenv("MONITOR_MAX_COMMENTS_PER_SCAN", "30"))
+        self.monitor_max_comments = int(os.getenv("MONITOR_MAX_COMMENTS", "200"))
+        self.monitor_max_watches = int(os.getenv("MONITOR_MAX_WATCHES", "20"))
+        self.monitor_state_path = Path(
+            os.getenv("MONITOR_STATE_PATH", "monitor_state.json"))
 
 
 @lru_cache
