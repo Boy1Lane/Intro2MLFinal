@@ -59,3 +59,26 @@ def test_fetch_rejects_bad_scheme():
 def test_fetch_rejects_internal_host():
     with pytest.raises(FetchError):
         fetch_comments("http://localhost:8000/secret")
+
+
+def test_redirect_to_internal_host_not_followed():
+    """Verify that redirects to internal hosts are not transparently followed.
+
+    With follow_redirects=False, the client returns the 302 response itself,
+    which lacks HTML content-type and should raise FetchError.
+    """
+    def redirect_handler(request):
+        # Return a 302 redirect to an internal AWS metadata endpoint
+        return httpx.Response(
+            302,
+            headers={
+                "location": "http://169.254.169.254/latest/meta-data/",
+                "content-type": "text/plain",
+            },
+            text="Moved",
+        )
+
+    transport = httpx.MockTransport(redirect_handler)
+    # The redirect response is not HTML, so it should raise FetchError
+    with pytest.raises(FetchError, match="không phải HTML"):
+        fetch_comments("https://example.com/page", _transport=transport)

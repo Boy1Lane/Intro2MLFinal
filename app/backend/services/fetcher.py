@@ -64,7 +64,7 @@ def fetch_comments(url: str, *, max_len: int = 5000, min_len: int = 3,
                    timeout: float = 10.0, _transport=None) -> list[str]:
     _guard(url)
     try:
-        with httpx.Client(timeout=timeout, follow_redirects=True,
+        with httpx.Client(timeout=timeout, follow_redirects=False,
                           transport=_transport,
                           headers={"User-Agent": "Mozilla/5.0 (ViHSD-Monitor)"}) as c:
             resp = c.get(url)
