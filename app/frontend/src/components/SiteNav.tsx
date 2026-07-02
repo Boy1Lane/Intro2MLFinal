@@ -11,9 +11,11 @@ export function SiteNav() {
           </span>
           ViHSD Studio
         </Link>
-        <span className="hidden text-xs text-slate-400 sm:block">
-          Phát hiện ngôn từ thù ghét tiếng Việt
-        </span>
+        <nav className="flex items-center gap-4 text-sm text-slate-600">
+          <Link href="/" className="hover:text-indigo-600">Studio</Link>
+          <Link href="/insights" className="hover:text-indigo-600">Insights</Link>
+          <Link href="/monitor" className="hover:text-indigo-600">Monitor</Link>
+        </nav>
       </div>
     </header>
   );
