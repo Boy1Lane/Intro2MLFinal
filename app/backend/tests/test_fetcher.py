@@ -44,9 +44,10 @@ FORUM_HTML = """
 """
 
 
-def test_fetch_strips_noise_and_catches_forum_comments():
-    out = fetch_comments("https://bao.example/bai",
-                         _transport=_mock_transport(content=FORUM_HTML))
+def test_bs_fallback_strips_noise_and_catches_forum_comments():
+    # Exercises the raw BeautifulSoup fallback heuristic directly (used when
+    # trafilatura yields nothing, e.g. tiny/odd pages).
+    out = fetcher._extract(FORUM_HTML, max_len=5000, min_len=3)
     # forum/news comment containers are captured
     assert "Bài báo này viết quá tệ" in out
     assert "Đồng ý với ý kiến bên trên" in out
@@ -56,6 +57,15 @@ def test_fetch_strips_noise_and_catches_forum_comments():
     assert not any("Diễn đàn" in o for o in out)
     assert not any("Tiêu đề bài báo" in o for o in out)
     assert not any("Bản quyền" in o for o in out)
+
+
+def test_trafilatura_is_primary_bs_is_fallback():
+    # trafilatura pulls main content + comments and strips boilerplate on real
+    # pages; the fetcher prefers it, falling back to _extract only when empty.
+    out = fetch_comments("https://bao.example/bai",
+                         _transport=_mock_transport(content=FORUM_HTML))
+    assert "Bài báo này viết quá tệ" in out
+    assert "Đồng ý với ý kiến bên trên" in out
 
 
 def test_fetch_rejects_non_html():

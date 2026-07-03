@@ -3,6 +3,7 @@ import socket
 from urllib.parse import urlparse
 
 import httpx
+import trafilatura
 from bs4 import BeautifulSoup
 
 
@@ -59,6 +60,33 @@ def _hint_match(value) -> bool:
     return any(hint in text for hint in _COMMENT_HINTS)
 
 
+def _dedup_lines(text: str, max_len: int, min_len: int) -> list[str]:
+    seen: set[str] = set()
+    out: list[str] = []
+    for line in text.split("\n"):
+        line = line.strip()
+        if not line or len(line) < min_len or len(line) > max_len or line in seen:
+            continue
+        seen.add(line)
+        out.append(line)
+    return out
+
+
+def _extract_readable(html: str, max_len: int, min_len: int) -> list[str]:
+    """Main content + comments via trafilatura (strips site boilerplate well).
+
+    Works across most server-rendered news/blog/forum layouts; returns [] when
+    the page is a JS shell or has no extractable content, so the caller can fall
+    back to the raw BeautifulSoup heuristic.
+    """
+    try:
+        text = trafilatura.extract(html, include_comments=True,
+                                   favor_recall=True, output_format="txt")
+    except Exception:  # noqa: BLE001 - never let extraction crash a scan
+        return []
+    return _dedup_lines(text, max_len, min_len) if text else []
+
+
 def _extract(html: str, max_len: int, min_len: int) -> list[str]:
     soup = BeautifulSoup(html, "html.parser")
     for tag in soup(_NOISE_TAGS):
@@ -96,4 +124,8 @@ def fetch_comments(url: str, *, max_len: int = 5000, min_len: int = 3,
     ctype = resp.headers.get("content-type", "")
     if "html" not in ctype.lower():
         raise FetchError("Nội dung không phải HTML.")
-    return _extract(resp.text, max_len, min_len)
+    # trafilatura first (clean, boilerplate-stripped); raw heuristic as fallback
+    out = _extract_readable(resp.text, max_len, min_len)
+    if not out:
+        out = _extract(resp.text, max_len, min_len)
+    return out
