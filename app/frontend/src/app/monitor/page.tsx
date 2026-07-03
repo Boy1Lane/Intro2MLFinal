@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, RefreshCw, Trash2, Check, Plus } from "lucide-react";
+import { AlertTriangle, RefreshCw, Trash2, Check, Plus, ChevronDown } from "lucide-react";
 import {
   listWatches, getMonitorModels, getMonitorSources, createWatch, getWatch,
   scanWatch, ackWatch, deleteWatch, type WatchSummary, type TokenScore,
@@ -73,35 +73,44 @@ export default function MonitorPage() {
 
       <div className="mt-6 flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row">
         <input
-          className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm"
-          placeholder="https://trang-tin.com/bai-viet"
+          className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          placeholder="https://vnexpress.net/bai-viet-123.html"
+          aria-label="URL cần theo dõi"
           value={url} onChange={(e) => setUrl(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter" && url.trim()) add.mutate(); }}
         />
         <input
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm sm:w-36"
+          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:w-36"
           placeholder="Tên (tuỳ chọn)"
+          aria-label="Tên gợi nhớ"
           value={label} onChange={(e) => setLabel(e.target.value)}
         />
         <select
-          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm sm:w-44"
+          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:w-44"
           value={model} onChange={(e) => setModel(e.target.value)}
-          title="Model phân loại"
+          aria-label="Model phân loại"
         >
           {(models.data ?? [{ key: "PhoBERT", name: "PhoBERT-base-v2" }]).map((m) => (
             <option key={m.key} value={m.key}>{m.name}</option>
           ))}
         </select>
         <button
-          className="inline-flex items-center justify-center gap-1 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+          className="inline-flex items-center justify-center gap-1 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:opacity-50"
           disabled={!url.trim() || add.isPending}
           onClick={() => add.mutate()}
         >
-          <Plus className="h-4 w-4" /> Thêm
+          <Plus className="h-4 w-4" /> {add.isPending ? "Đang thêm…" : "Thêm"}
         </button>
       </div>
       {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
 
       <div className="mt-6 space-y-3">
+        {watches.isLoading && (
+          <p className="text-sm text-slate-400">Đang tải danh sách theo dõi…</p>
+        )}
+        {watches.isError && (
+          <p className="text-sm text-red-600">Không tải được danh sách. Thử lại sau.</p>
+        )}
         {watches.data?.length === 0 && (
           <p className="text-sm text-slate-400">Chưa có URL nào được theo dõi.</p>
         )}
@@ -121,6 +130,21 @@ export default function MonitorPage() {
   );
 }
 
+function IconButton({ label, onClick, danger, children }: {
+  label: string; onClick: () => void; danger?: boolean; children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button" onClick={onClick} title={label} aria-label={label}
+      className={`rounded-lg p-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+        danger ? "text-red-500 hover:bg-red-50" : "text-slate-600 hover:bg-slate-100"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
 function WatchCard({ watch, modelLabel, open, onToggle, onScan, onAck, onDelete, scanning }: {
   watch: WatchSummary; modelLabel: string; open: boolean; onToggle: () => void;
   onScan: () => void; onAck: () => void; onDelete: () => void; scanning: boolean;
@@ -134,31 +158,39 @@ function WatchCard({ watch, modelLabel, open, onToggle, onScan, onAck, onDelete,
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="flex items-center justify-between gap-2">
-        <button className="min-w-0 flex-1 text-left" onClick={onToggle}>
-          <p className="truncate font-medium text-slate-800">
-            {watch.label || watch.url}
-          </p>
-          <p className="truncate text-xs text-slate-400">{watch.url}</p>
-          <span className="mt-0.5 inline-block rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-500">
-            {modelLabel}
+      <div className="flex items-start justify-between gap-2">
+        <button
+          onClick={onToggle} aria-expanded={open}
+          className="flex min-w-0 flex-1 items-start gap-2 rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+        >
+          <ChevronDown
+            className={`mt-0.5 h-4 w-4 shrink-0 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`}
+          />
+          <span className="min-w-0">
+            <span className="block truncate font-medium text-slate-800">
+              {watch.label || watch.url}
+            </span>
+            <span className="block truncate text-xs text-slate-400">{watch.url}</span>
+            <span className="mt-0.5 inline-block rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-500">
+              {modelLabel}
+            </span>
           </span>
         </button>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1">
           {watch.alert_count > 0 && (
             <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-1 text-xs font-medium text-red-600">
               <AlertTriangle className="h-3 w-3" /> {watch.alert_count}
             </span>
           )}
-          <button title="Quét ngay" onClick={onScan} className="rounded-lg p-2 hover:bg-slate-100">
+          <IconButton label="Quét ngay" onClick={onScan}>
             <RefreshCw className={`h-4 w-4 ${scanning ? "animate-spin" : ""}`} />
-          </button>
-          <button title="Đánh dấu đã đọc" onClick={onAck} className="rounded-lg p-2 hover:bg-slate-100">
+          </IconButton>
+          <IconButton label="Đánh dấu đã đọc" onClick={onAck}>
             <Check className="h-4 w-4" />
-          </button>
-          <button title="Xoá" onClick={onDelete} className="rounded-lg p-2 text-red-500 hover:bg-red-50">
+          </IconButton>
+          <IconButton label="Xoá watch" onClick={onDelete} danger>
             <Trash2 className="h-4 w-4" />
-          </button>
+          </IconButton>
         </div>
       </div>
 
@@ -170,6 +202,9 @@ function WatchCard({ watch, modelLabel, open, onToggle, onScan, onAck, onDelete,
 
       {open && (
         <div className="mt-3 space-y-2 border-t border-slate-100 pt-3">
+          {detail.isLoading && (
+            <p className="text-xs text-slate-400">Đang tải bình luận…</p>
+          )}
           {detail.data?.comments.length === 0 && (
             <p className="text-xs text-slate-400">Chưa trích được bình luận nào.</p>
           )}
