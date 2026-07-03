@@ -48,17 +48,21 @@ export async function getHealth(): Promise<{ sklearn_loaded: boolean; phobert_av
 }
 
 export interface MonitorComment { text: string; label: number; label_name: string; proba: number[]; toxic: boolean; model: string; seen_at: string; tokens: TokenScore[]; }
-export interface WatchSummary { id: string; url: string; label: string | null; created_at: string; last_scan: string | null; last_error: string | null; alert_count: number; total_comments: number; toxic_count: number; }
+export interface WatchSummary { id: string; url: string; label: string | null; created_at: string; last_scan: string | null; last_error: string | null; alert_count: number; total_comments: number; toxic_count: number; model: string; }
 export interface WatchDetail extends WatchSummary { comments: MonitorComment[]; }
+export interface ModelOption { key: string; name: string; }
 
 export async function listWatches(): Promise<WatchSummary[]> {
   return handle<WatchSummary[]>(await fetch(`${BASE}/monitor/watches`));
 }
-export async function createWatch(url: string, label?: string): Promise<WatchSummary> {
+export async function getMonitorModels(): Promise<ModelOption[]> {
+  return handle<ModelOption[]>(await fetch(`${BASE}/monitor/models`));
+}
+export async function createWatch(url: string, label?: string, model?: string): Promise<WatchSummary> {
   const res = await fetch(`${BASE}/monitor/watches`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ url, label: label || null }),
+    body: JSON.stringify({ url, label: label || null, model: model || "PhoBERT" }),
   });
   return handle<WatchSummary>(res);
 }

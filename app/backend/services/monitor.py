@@ -8,10 +8,14 @@ from datetime import datetime, timezone
 
 import numpy as np
 
-from app.backend.constants import LABEL_NAMES
+from app.backend.constants import DISPLAY_NAMES, LABEL_NAMES, SKLEARN_ORDER
 from app.backend.services.fetcher import FetchError, fetch_comments
 
 TOXIC = {"OFFENSIVE", "HATE"}
+# "PhoBERT" means prefer PhoBERT, fall back to Logistic Regression; the sklearn
+# keys pin classification to that specific model.
+DEFAULT_MODEL = "PhoBERT"
+VALID_MODELS = (DEFAULT_MODEL, *SKLEARN_ORDER)
 
 
 def _now() -> str:
@@ -43,6 +47,7 @@ class Watch:
     last_scan: str | None = None
     last_error: str | None = None
     alert_count: int = 0
+    model: str = DEFAULT_MODEL
     comments: list[Comment] = field(default_factory=list)
     seen_hashes: set[str] = field(default_factory=set)
 
@@ -67,11 +72,14 @@ class MonitorService:
         self._io_lock = threading.Lock()  # serializes file I/O in save()
 
     # ---- CRUD ---------------------------------------------------------
-    def add(self, url: str, label: str | None = None) -> Watch:
+    def add(self, url: str, label: str | None = None,
+            model: str = DEFAULT_MODEL) -> Watch:
+        if model not in VALID_MODELS:
+            model = DEFAULT_MODEL
         with self._lock:
             if len(self._watches) >= self.settings.monitor_max_watches:
                 raise ValueError("max watches")
-            watch = Watch(id=uuid.uuid4().hex, url=url, label=label)
+            watch = Watch(id=uuid.uuid4().hex, url=url, label=label, model=model)
             self._watches[watch.id] = watch
         self.save()
         return watch
@@ -99,14 +107,17 @@ class MonitorService:
         return watch
 
     # ---- classification ----------------------------------------------
-    def classify(self, text: str) -> Comment:
-        proba = self.phobert.try_proba(text) if self.phobert is not None else None
+    def classify(self, text: str, model_key: str = DEFAULT_MODEL) -> Comment:
+        proba = None
+        if model_key == DEFAULT_MODEL and self.phobert is not None:
+            proba = self.phobert.try_proba(text)
         if proba is not None:
-            model = "PhoBERT-base-v2"
+            model = DISPLAY_NAMES["PhoBERT"]  # "PhoBERT-base-v2"
         else:
-            proba = [float(p) for p in
-                     self.registry.predict_proba("LogisticRegression", text)]
-            model = "Logistic Regression"
+            # sklearn path: the picked model, or LR when PhoBERT is unavailable
+            key = model_key if model_key in SKLEARN_ORDER else "LogisticRegression"
+            proba = [float(p) for p in self.registry.predict_proba(key, text)]
+            model = DISPLAY_NAMES[key]
         proba = [float(p) for p in proba]
         label = int(np.argmax(proba))
         name = LABEL_NAMES[label]
@@ -134,7 +145,7 @@ class MonitorService:
         cap = self.settings.monitor_max_comments_per_scan
         new_texts = [t for t in raw if _hash(t) not in seen_snapshot][:cap]
         # Classify outside the lock (PhoBERT inference is slow)
-        classified = [self.classify(text) for text in new_texts]
+        classified = [self.classify(text, watch.model) for text in new_texts]
         # Mutation block under lock
         with self._lock:
             for comment in classified:
@@ -186,7 +197,8 @@ class MonitorService:
                     id=d["id"], url=d["url"], label=d.get("label"),
                     created_at=d.get("created_at", _now()),
                     last_scan=d.get("last_scan"), last_error=d.get("last_error"),
-                    alert_count=d.get("alert_count", 0), comments=comments,
+                    alert_count=d.get("alert_count", 0),
+                    model=d.get("model", DEFAULT_MODEL), comments=comments,
                     seen_hashes=set(d.get("seen_hashes", [])),
                 )
             self._watches = watches

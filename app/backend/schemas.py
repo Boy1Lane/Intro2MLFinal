@@ -93,6 +93,7 @@ class WatchSummary(BaseModel):
     alert_count: int
     total_comments: int
     toxic_count: int
+    model: str = "PhoBERT"
 
 
 class WatchDetail(WatchSummary):
@@ -102,3 +103,9 @@ class WatchDetail(WatchSummary):
 class CreateWatchRequest(BaseModel):
     url: str = Field(min_length=1)
     label: str | None = None
+    model: str = "PhoBERT"
+
+
+class ModelOption(BaseModel):
+    key: str
+    name: str

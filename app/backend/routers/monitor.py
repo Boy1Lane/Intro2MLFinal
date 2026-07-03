@@ -2,10 +2,12 @@ from urllib.parse import urlparse
 
 from fastapi import APIRouter, HTTPException, Request
 
-from app.backend.schemas import (CreateWatchRequest, MonitorComment,
-                                  TokenScore, WatchDetail, WatchSummary)
+from app.backend.constants import DISPLAY_NAMES, MODEL_ORDER
+from app.backend.schemas import (CreateWatchRequest, ModelOption,
+                                  MonitorComment, TokenScore, WatchDetail,
+                                  WatchSummary)
 from app.backend.services.explain import explain_tokens
-from app.backend.services.monitor import Watch
+from app.backend.services.monitor import VALID_MODELS, Watch
 
 # how many driving tokens to surface per toxic comment
 _MAX_EXPLAIN_TOKENS = 8
@@ -23,6 +25,7 @@ def _summary(watch: Watch) -> WatchSummary:
         created_at=watch.created_at, last_scan=watch.last_scan,
         last_error=watch.last_error, alert_count=watch.alert_count,
         total_comments=len(watch.comments), toxic_count=_toxic_count(watch),
+        model=watch.model,
     )
 
 
@@ -59,11 +62,25 @@ def create_watch(req: CreateWatchRequest, request: Request) -> WatchSummary:
     parsed = urlparse(req.url)
     if parsed.scheme not in ("http", "https") or not parsed.netloc:
         raise HTTPException(status_code=400, detail="URL phải là http/https hợp lệ.")
+    if req.model not in VALID_MODELS:
+        raise HTTPException(status_code=400, detail="Model không hợp lệ.")
     try:
-        watch = _service(request).add(req.url, req.label)
+        watch = _service(request).add(req.url, req.label, req.model)
     except ValueError:
         raise HTTPException(status_code=400, detail="Đã đạt giới hạn số URL theo dõi.")
     return _summary(watch)
+
+
+@router.get("/models", response_model=list[ModelOption])
+def list_models(request: Request) -> list[ModelOption]:
+    """Models selectable for a watch: PhoBERT (auto) + loaded sklearn models."""
+    reg = _registry(request)
+    available = set(getattr(reg, "models", {}) or {})
+    out = []
+    for key in MODEL_ORDER:  # PhoBERT first, then sklearn in report order
+        if key == "PhoBERT" or key in available:
+            out.append(ModelOption(key=key, name=DISPLAY_NAMES[key]))
+    return out
 
 
 @router.get("/watches", response_model=list[WatchSummary])
