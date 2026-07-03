@@ -4,9 +4,27 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, RefreshCw, Trash2, Check, Plus } from "lucide-react";
 import {
   listWatches, createWatch, getWatch, scanWatch, ackWatch, deleteWatch,
-  type WatchSummary,
+  type WatchSummary, type TokenScore,
 } from "@/lib/api";
 import { labelVi, labelColor, labelSoftBg, labelBorder } from "@/lib/labels";
+
+// Wrap the words that pushed a comment toward its toxic label. Explanation
+// tokens are lowercased/normalized upstream, so match on a lowercased,
+// punctuation-trimmed form of each original word (catches plain hate words).
+const STRIP = /^[^0-9a-zà-ỹ]+|[^0-9a-zà-ỹ]+$/gi;
+function highlight(text: string, tokens: TokenScore[]): React.ReactNode {
+  const toxic = new Set(tokens.filter((t) => t.score > 0).map((t) => t.token.toLowerCase()));
+  if (toxic.size === 0) return text;
+  return text.split(/(\s+)/).map((part, i) => {
+    if (/^\s+$/.test(part) || !part) return part;
+    const norm = part.toLowerCase().replace(STRIP, "");
+    return norm && toxic.has(norm) ? (
+      <mark key={i} className="rounded bg-red-200 px-0.5 text-red-900">{part}</mark>
+    ) : (
+      part
+    );
+  });
+}
 
 export default function MonitorPage() {
   const qc = useQueryClient();
@@ -129,6 +147,12 @@ function WatchCard({ watch, open, onToggle, onScan, onAck, onDelete, scanning }:
           {detail.data?.comments.length === 0 && (
             <p className="text-xs text-slate-400">Chưa trích được bình luận nào.</p>
           )}
+          {detail.data?.comments.some((c) => c.toxic && c.tokens.length > 0) && (
+            <p className="text-[10px] text-slate-400">
+              <mark className="rounded bg-red-200 px-0.5 text-red-900">từ tô đỏ</mark>{" "}
+              = từ khiến bình luận bị gắn nhãn tiêu cực
+            </p>
+          )}
           {detail.data?.comments
             .slice()
             // toxic first, then newest first within each group
@@ -150,25 +174,9 @@ function WatchCard({ watch, open, onToggle, onScan, onAck, onDelete, scanning }:
                     </span>
                     <span className="text-[10px] text-slate-400">{c.model}</span>
                   </div>
-                  <p className="mt-1 text-slate-700">{c.text}</p>
-                  {c.toxic && c.tokens.length > 0 && (
-                    <div className="mt-1.5 flex flex-wrap items-center gap-1">
-                      <span className="text-[10px] text-slate-400">Từ khoá:</span>
-                      {c.tokens.map((t, i) => (
-                        <span
-                          key={i}
-                          title={t.score.toFixed(3)}
-                          className={`rounded px-1.5 py-0.5 text-[11px] ${
-                            t.score > 0
-                              ? "bg-red-100 text-red-700"
-                              : "bg-emerald-100 text-emerald-700"
-                          }`}
-                        >
-                          {t.token}
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                  <p className="mt-1 text-slate-700">
+                    {c.toxic && c.tokens.length > 0 ? highlight(c.text, c.tokens) : c.text}
+                  </p>
                 </div>
               );
             })}
