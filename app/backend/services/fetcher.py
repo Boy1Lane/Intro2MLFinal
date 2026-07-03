@@ -109,21 +109,36 @@ def _extract(html: str, max_len: int, min_len: int) -> list[str]:
     return out
 
 
-def fetch_comments(url: str, *, max_len: int = 5000, min_len: int = 3,
-                   timeout: float = 10.0, _transport=None) -> list[str]:
+_USER_AGENT = "Mozilla/5.0 (ViHSD-Monitor)"
+
+
+def http_get(url: str, *, timeout: float = 10.0, expect_html: bool = True,
+             _transport=None) -> httpx.Response:
+    """SSRF-guarded GET shared by all source adapters.
+
+    Raises FetchError on a blocked host, transport error, non-2xx status, or
+    (when expect_html) a non-HTML content type. Redirects are not followed so
+    the guard cannot be bypassed. JSON-API adapters pass expect_html=False.
+    """
     _guard(url)
     try:
         with httpx.Client(timeout=timeout, follow_redirects=False,
                           transport=_transport,
-                          headers={"User-Agent": "Mozilla/5.0 (ViHSD-Monitor)"}) as c:
+                          headers={"User-Agent": _USER_AGENT}) as c:
             resp = c.get(url)
     except httpx.HTTPError as e:
         raise FetchError(f"Không tải được URL: {e}")
     if resp.status_code >= 400:
         raise FetchError(f"URL trả về mã lỗi {resp.status_code}.")
-    ctype = resp.headers.get("content-type", "")
-    if "html" not in ctype.lower():
+    if expect_html and "html" not in resp.headers.get("content-type", "").lower():
         raise FetchError("Nội dung không phải HTML.")
+    return resp
+
+
+def fetch_comments(url: str, *, max_len: int = 5000, min_len: int = 3,
+                   timeout: float = 10.0, _transport=None) -> list[str]:
+    """Generic extraction: guarded fetch → trafilatura → BeautifulSoup fallback."""
+    resp = http_get(url, timeout=timeout, expect_html=True, _transport=_transport)
     # trafilatura first (clean, boilerplate-stripped); raw heuristic as fallback
     out = _extract_readable(resp.text, max_len, min_len)
     if not out:

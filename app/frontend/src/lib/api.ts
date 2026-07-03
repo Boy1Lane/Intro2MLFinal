@@ -51,12 +51,16 @@ export interface MonitorComment { text: string; label: number; label_name: strin
 export interface WatchSummary { id: string; url: string; label: string | null; created_at: string; last_scan: string | null; last_error: string | null; alert_count: number; total_comments: number; toxic_count: number; model: string; }
 export interface WatchDetail extends WatchSummary { comments: MonitorComment[]; }
 export interface ModelOption { key: string; name: string; }
+export interface SourceInfo { name: string; display: string; }
 
 export async function listWatches(): Promise<WatchSummary[]> {
   return handle<WatchSummary[]>(await fetch(`${BASE}/monitor/watches`));
 }
 export async function getMonitorModels(): Promise<ModelOption[]> {
   return handle<ModelOption[]>(await fetch(`${BASE}/monitor/models`));
+}
+export async function getMonitorSources(): Promise<SourceInfo[]> {
+  return handle<SourceInfo[]>(await fetch(`${BASE}/monitor/sources`));
 }
 export async function createWatch(url: string, label?: string, model?: string): Promise<WatchSummary> {
   const res = await fetch(`${BASE}/monitor/watches`, {

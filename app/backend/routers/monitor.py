@@ -4,10 +4,11 @@ from fastapi import APIRouter, HTTPException, Request
 
 from app.backend.constants import DISPLAY_NAMES, MODEL_ORDER
 from app.backend.schemas import (CreateWatchRequest, ModelOption,
-                                  MonitorComment, TokenScore, WatchDetail,
-                                  WatchSummary)
+                                  MonitorComment, SourceInfo, TokenScore,
+                                  WatchDetail, WatchSummary)
 from app.backend.services.explain import explain_tokens
 from app.backend.services.monitor import VALID_MODELS, Watch
+from app.backend.services.sources import list_sources
 
 # how many driving tokens to surface per toxic comment
 _MAX_EXPLAIN_TOKENS = 8
@@ -69,6 +70,12 @@ def create_watch(req: CreateWatchRequest, request: Request) -> WatchSummary:
     except ValueError:
         raise HTTPException(status_code=400, detail="Đã đạt giới hạn số URL theo dõi.")
     return _summary(watch)
+
+
+@router.get("/sources", response_model=list[SourceInfo])
+def list_supported_sources() -> list[SourceInfo]:
+    """Sites with a first-class comment adapter (others run best-effort)."""
+    return [SourceInfo(**s) for s in list_sources()]
 
 
 @router.get("/models", response_model=list[ModelOption])

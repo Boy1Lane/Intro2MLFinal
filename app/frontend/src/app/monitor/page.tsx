@@ -3,8 +3,8 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, RefreshCw, Trash2, Check, Plus } from "lucide-react";
 import {
-  listWatches, getMonitorModels, createWatch, getWatch, scanWatch, ackWatch,
-  deleteWatch, type WatchSummary, type TokenScore,
+  listWatches, getMonitorModels, getMonitorSources, createWatch, getWatch,
+  scanWatch, ackWatch, deleteWatch, type WatchSummary, type TokenScore,
 } from "@/lib/api";
 import { labelVi, labelColor, labelSoftBg, labelBorder } from "@/lib/labels";
 
@@ -40,6 +40,7 @@ export default function MonitorPage() {
     refetchInterval: 15000,
   });
   const models = useQuery({ queryKey: ["monitor-models"], queryFn: getMonitorModels });
+  const sources = useQuery({ queryKey: ["monitor-sources"], queryFn: getMonitorSources });
   const modelName = (key: string) =>
     models.data?.find((m) => m.key === key)?.name ?? key;
 
@@ -60,6 +61,15 @@ export default function MonitorPage() {
       <p className="mt-1 text-sm text-slate-500">
         Theo dõi URL định kỳ (mỗi vài phút). Bình luận tiêu cực mới sẽ hiện cảnh báo đỏ.
       </p>
+      {sources.data && sources.data.length > 0 && (
+        <p className="mt-1 text-xs text-slate-400">
+          Hỗ trợ tốt (lấy đúng bình luận):{" "}
+          <span className="font-medium text-slate-500">
+            {sources.data.map((s) => s.display).join(", ")}
+          </span>{" "}
+          · trang khác chạy best-effort.
+        </p>
+      )}
 
       <div className="mt-6 flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row">
         <input

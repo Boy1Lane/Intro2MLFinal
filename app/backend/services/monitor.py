@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 import numpy as np
 
 from app.backend.constants import DISPLAY_NAMES, LABEL_NAMES, SKLEARN_ORDER
-from app.backend.services.fetcher import FetchError, fetch_comments
+from app.backend.services.sources import FetchError, fetch_comments
 
 TOXIC = {"OFFENSIVE", "HATE"}
 # "PhoBERT" means prefer PhoBERT, fall back to Logistic Regression; the sklearn

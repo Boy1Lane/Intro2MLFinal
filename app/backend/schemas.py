@@ -109,3 +109,8 @@ class CreateWatchRequest(BaseModel):
 class ModelOption(BaseModel):
     key: str
     name: str
+
+
+class SourceInfo(BaseModel):
+    name: str
+    display: str
