@@ -38,7 +38,13 @@ def test_scan_flags_toxic_and_ack(client):
     body = r.json()
     assert body["alert_count"] == 1
     assert len(body["comments"]) == 2
-    assert any(c["toxic"] for c in body["comments"])
+    toxic = [c for c in body["comments"] if c["toxic"]]
+    assert toxic
+    # toxic comments carry token-level explanation; each token has text + score
+    assert toxic[0]["tokens"]
+    assert {"token", "score"} <= set(toxic[0]["tokens"][0])
+    # clean comments carry no explanation payload
+    assert all(c["tokens"] == [] for c in body["comments"] if not c["toxic"])
     ack = client.post(f"/monitor/watches/{wid}/ack")
     assert ack.json()["alert_count"] == 0
 

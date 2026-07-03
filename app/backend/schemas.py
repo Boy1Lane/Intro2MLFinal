@@ -78,6 +78,9 @@ class MonitorComment(BaseModel):
     toxic: bool
     model: str
     seen_at: str
+    # top tokens that drove the (toxic) label; empty for clean comments.
+    # Computed lazily from the sklearn LR coefficients, like /predict.
+    tokens: list[TokenScore] = []
 
 
 class WatchSummary(BaseModel):

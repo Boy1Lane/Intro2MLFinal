@@ -47,7 +47,7 @@ export async function getHealth(): Promise<{ sklearn_loaded: boolean; phobert_av
   return handle(await fetch(`${BASE}/health`));
 }
 
-export interface MonitorComment { text: string; label: number; label_name: string; proba: number[]; toxic: boolean; model: string; seen_at: string; }
+export interface MonitorComment { text: string; label: number; label_name: string; proba: number[]; toxic: boolean; model: string; seen_at: string; tokens: TokenScore[]; }
 export interface WatchSummary { id: string; url: string; label: string | null; created_at: string; last_scan: string | null; last_error: string | null; alert_count: number; total_comments: number; toxic_count: number; }
 export interface WatchDetail extends WatchSummary { comments: MonitorComment[]; }
 

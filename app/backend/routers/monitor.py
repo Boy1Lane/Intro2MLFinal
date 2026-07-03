@@ -3,8 +3,12 @@ from urllib.parse import urlparse
 from fastapi import APIRouter, HTTPException, Request
 
 from app.backend.schemas import (CreateWatchRequest, MonitorComment,
-                                  WatchDetail, WatchSummary)
+                                  TokenScore, WatchDetail, WatchSummary)
+from app.backend.services.explain import explain_tokens
 from app.backend.services.monitor import Watch
+
+# how many driving tokens to surface per toxic comment
+_MAX_EXPLAIN_TOKENS = 8
 
 router = APIRouter(prefix="/monitor")
 
@@ -22,18 +26,32 @@ def _summary(watch: Watch) -> WatchSummary:
     )
 
 
-def _detail(watch: Watch) -> WatchDetail:
+def _explain(registry, text: str, label: int) -> list[TokenScore]:
+    """Top tokens driving a toxic label, strongest first (sklearn LR proxy)."""
+    if registry is None:
+        return []
+    scored = [t for t in explain_tokens(registry, text, label) if t["score"] != 0.0]
+    scored.sort(key=lambda t: abs(t["score"]), reverse=True)
+    return [TokenScore(**t) for t in scored[:_MAX_EXPLAIN_TOKENS]]
+
+
+def _detail(watch: Watch, registry=None) -> WatchDetail:
     return WatchDetail(
         **_summary(watch).model_dump(),
         comments=[MonitorComment(
             text=c.text, label=c.label, label_name=c.label_name,
             proba=c.proba, toxic=c.toxic, model=c.model, seen_at=c.seen_at,
+            tokens=_explain(registry, c.text, c.label) if c.toxic else [],
         ) for c in watch.comments],
     )
 
 
 def _service(request: Request):
     return request.app.state.monitor
+
+
+def _registry(request: Request):
+    return getattr(request.app.state, "registry", None)
 
 
 @router.post("/watches", response_model=WatchSummary)
@@ -58,7 +76,7 @@ def get_watch(watch_id: str, request: Request) -> WatchDetail:
     watch = _service(request).get(watch_id)
     if watch is None:
         raise HTTPException(status_code=404, detail="Không tìm thấy watch.")
-    return _detail(watch)
+    return _detail(watch, _registry(request))
 
 
 @router.post("/watches/{watch_id}/scan", response_model=WatchDetail)
@@ -66,7 +84,7 @@ def scan_watch(watch_id: str, request: Request) -> WatchDetail:
     watch = _service(request).scan(watch_id)
     if watch is None:
         raise HTTPException(status_code=404, detail="Không tìm thấy watch.")
-    return _detail(watch)
+    return _detail(watch, _registry(request))
 
 
 @router.post("/watches/{watch_id}/ack", response_model=WatchSummary)

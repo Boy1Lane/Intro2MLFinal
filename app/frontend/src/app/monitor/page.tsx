@@ -151,6 +151,24 @@ function WatchCard({ watch, open, onToggle, onScan, onAck, onDelete, scanning }:
                     <span className="text-[10px] text-slate-400">{c.model}</span>
                   </div>
                   <p className="mt-1 text-slate-700">{c.text}</p>
+                  {c.toxic && c.tokens.length > 0 && (
+                    <div className="mt-1.5 flex flex-wrap items-center gap-1">
+                      <span className="text-[10px] text-slate-400">Từ khoá:</span>
+                      {c.tokens.map((t, i) => (
+                        <span
+                          key={i}
+                          title={t.score.toFixed(3)}
+                          className={`rounded px-1.5 py-0.5 text-[11px] ${
+                            t.score > 0
+                              ? "bg-red-100 text-red-700"
+                              : "bg-emerald-100 text-emerald-700"
+                          }`}
+                        >
+                          {t.token}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               );
             })}
