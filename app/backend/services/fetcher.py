@@ -39,14 +39,35 @@ def _guard(url: str) -> None:
         raise FetchError("Host không hợp lệ hoặc bị chặn (nội bộ).")
 
 
+# Page regions that almost never hold user comments — dropped to cut boilerplate
+# (site chrome, menus, article headers/footers, submit forms).
+_NOISE_TAGS = ["script", "style", "noscript", "nav", "header", "footer",
+               "aside", "form"]
+
+# class/id substrings marking comment / forum / review blocks. Covers common
+# engines (Disqus, XenForo, vBulletin, WordPress) and VN news/forum markup.
+_COMMENT_HINTS = ("comment", "cmt", "reply", "respond", "review", "message",
+                  "disqus", "binh-luan", "binhluan", "phan-hoi", "phanhoi",
+                  "thao-luan", "thaoluan")
+
+
+def _hint_match(value) -> bool:
+    """True when a class/id attribute value contains a comment-block hint."""
+    if not value:
+        return False
+    text = " ".join(value if isinstance(value, list) else [value]).lower()
+    return any(hint in text for hint in _COMMENT_HINTS)
+
+
 def _extract(html: str, max_len: int, min_len: int) -> list[str]:
     soup = BeautifulSoup(html, "html.parser")
-    for tag in soup(["script", "style", "noscript"]):
+    for tag in soup(_NOISE_TAGS):
         tag.decompose()
-    nodes = soup.find_all("p") + soup.find_all("li")
-    nodes += soup.find_all(attrs={"class": lambda c: c and "comment" in " ".join(
-        c if isinstance(c, list) else [c]).lower()})
-    nodes += soup.find_all(attrs={"id": lambda i: i and "comment" in i.lower()})
+    # Comment/forum-specific containers carry the strongest signal; generic
+    # text blocks are a fallback for plain pages without comment markup.
+    nodes = soup.find_all(attrs={"class": _hint_match})
+    nodes += soup.find_all(attrs={"id": _hint_match})
+    nodes += soup.find_all(["p", "li", "blockquote"])
     seen: set[str] = set()
     out: list[str] = []
     for node in nodes:

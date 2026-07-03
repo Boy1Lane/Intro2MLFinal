@@ -6,7 +6,7 @@ import {
   listWatches, createWatch, getWatch, scanWatch, ackWatch, deleteWatch,
   type WatchSummary,
 } from "@/lib/api";
-import { labelVi, labelColor, labelSoftBg } from "@/lib/labels";
+import { labelVi, labelColor, labelSoftBg, labelBorder } from "@/lib/labels";
 
 export default function MonitorPage() {
   const qc = useQueryClient();
@@ -129,17 +129,31 @@ function WatchCard({ watch, open, onToggle, onScan, onAck, onDelete, scanning }:
           {detail.data?.comments.length === 0 && (
             <p className="text-xs text-slate-400">Chưa trích được bình luận nào.</p>
           )}
-          {detail.data?.comments.slice().reverse().map((c) => (
-            <div key={`${c.seen_at}-${c.text}`} className={`rounded-lg p-2 text-sm ${labelSoftBg(c.label)}`}>
-              <div className="flex items-center justify-between gap-2">
-                <span className={`text-xs font-medium ${labelColor(c.label)}`}>
-                  {labelVi(c.label)}
-                </span>
-                <span className="text-[10px] text-slate-400">{c.model}</span>
-              </div>
-              <p className="mt-1 text-slate-700">{c.text}</p>
-            </div>
-          ))}
+          {detail.data?.comments
+            .slice()
+            // toxic first, then newest first within each group
+            .sort((a, b) =>
+              (b.toxic ? 1 : 0) - (a.toxic ? 1 : 0) || b.seen_at.localeCompare(a.seen_at))
+            .map((c) => {
+              const pct = Math.round((c.proba[c.label] ?? 0) * 100);
+              return (
+                <div
+                  key={`${c.seen_at}-${c.text}`}
+                  className={`rounded-lg p-2 text-sm ${labelSoftBg(c.label)} ${
+                    c.toxic ? `border-l-4 ${labelBorder(c.label)}` : "opacity-60"
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className={`inline-flex items-center gap-1 text-xs font-semibold ${labelColor(c.label)}`}>
+                      {c.toxic && <AlertTriangle className="h-3 w-3" />}
+                      {labelVi(c.label)} · {pct}%
+                    </span>
+                    <span className="text-[10px] text-slate-400">{c.model}</span>
+                  </div>
+                  <p className="mt-1 text-slate-700">{c.text}</p>
+                </div>
+              );
+            })}
         </div>
       )}
     </div>

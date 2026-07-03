@@ -31,6 +31,33 @@ def test_fetch_parses_and_dedups():
     assert "x" not in out  # below min_len
 
 
+FORUM_HTML = """
+<html><body>
+  <nav><a>Trang chủ</a> <a>Diễn đàn</a></nav>
+  <header>Tiêu đề bài báo dài dòng ở đây</header>
+  <article><p>Nội dung bài báo chính thức</p></article>
+  <div class="comment-body">Bài báo này viết quá tệ</div>
+  <div class="cmt-content">Đồng ý với ý kiến bên trên</div>
+  <blockquote class="review">Nội dung phản hồi trích dẫn</blockquote>
+  <footer>Bản quyền 2026 thuộc về toà soạn</footer>
+</body></html>
+"""
+
+
+def test_fetch_strips_noise_and_catches_forum_comments():
+    out = fetch_comments("https://bao.example/bai",
+                         _transport=_mock_transport(content=FORUM_HTML))
+    # forum/news comment containers are captured
+    assert "Bài báo này viết quá tệ" in out
+    assert "Đồng ý với ý kiến bên trên" in out
+    assert "Nội dung phản hồi trích dẫn" in out
+    # site chrome (nav/header/footer) is dropped as boilerplate
+    assert not any("Trang chủ" in o for o in out)
+    assert not any("Diễn đàn" in o for o in out)
+    assert not any("Tiêu đề bài báo" in o for o in out)
+    assert not any("Bản quyền" in o for o in out)
+
+
 def test_fetch_rejects_non_html():
     t = _mock_transport(content_type="application/json", content="{}")
     with pytest.raises(FetchError):

@@ -13,7 +13,6 @@ export function SiteNav() {
         </Link>
         <nav className="flex items-center gap-4 text-sm text-slate-600">
           <Link href="/" className="hover:text-indigo-600">Studio</Link>
-          <Link href="/insights" className="hover:text-indigo-600">Insights</Link>
           <Link href="/monitor" className="hover:text-indigo-600">Monitor</Link>
         </nav>
       </div>
