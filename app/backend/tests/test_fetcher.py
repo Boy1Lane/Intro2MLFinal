@@ -89,6 +89,36 @@ def test_forum_extraction_is_preferred_over_trafilatura():
     assert not any("nguoidung" in o for o in out)
 
 
+def _paged_forum_transport():
+    # page 1 has a pageNav to 2 pages; each page has a distinct post
+    page1 = ('<html><body>'
+             '<nav class="pageNav"><a>1</a><a>2</a></nav>'
+             '<div class="bbWrapper">Post tren trang mot</div>'
+             '</body></html>')
+    page2 = ('<html><body>'
+             '<div class="bbWrapper">Post tren trang hai</div>'
+             '</body></html>')
+
+    def handler(request):
+        body = page2 if request.url.path.endswith("/page-2") else page1
+        return httpx.Response(200, headers={"content-type": "text/html"}, text=body)
+    return httpx.MockTransport(handler)
+
+
+def test_forum_auto_paginates_thread_root():
+    out = fetch_comments("https://forum.example/t/abc.123/",
+                         _transport=_paged_forum_transport())
+    assert "Post tren trang mot" in out
+    assert "Post tren trang hai" in out   # page 2 was followed
+
+
+def test_forum_explicit_page_is_not_auto_paginated():
+    out = fetch_comments("https://forum.example/t/abc.123/page-1",
+                         _transport=_paged_forum_transport())
+    assert "Post tren trang mot" in out
+    assert "Post tren trang hai" not in out  # explicit page -> no fan-out
+
+
 def test_trafilatura_is_primary_bs_is_fallback():
     # trafilatura pulls main content + comments and strips boilerplate on real
     # pages; the fetcher prefers it, falling back to _extract only when empty.

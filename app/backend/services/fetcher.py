@@ -1,4 +1,5 @@
 import ipaddress
+import re
 import socket
 from urllib.parse import urlparse
 
@@ -75,6 +76,29 @@ def _dedup_lines(text: str, max_len: int, min_len: int) -> list[str]:
 # per-post body selectors for common forum engines: XenForo (voz & most VN
 # forums), Discourse, phpBB. High-signal — one clean node per post, no chrome.
 _FORUM_POST_SELECTORS = ".bbWrapper, .cooked, .postbody"
+
+# cap auto-pagination so a scan can't fan out to an unbounded number of GETs
+_MAX_FORUM_PAGES = 5
+_PAGE_SUFFIX = re.compile(r"/page-\d+/?$")
+
+
+def _forum_page_urls(html: str, url: str, cap: int = _MAX_FORUM_PAGES) -> list[str]:
+    """Extra XenForo thread page URLs (page 2..N) to also fetch. Returns [] for
+    an explicit /page-N URL (respect the user's page choice) or a single-page
+    thread."""
+    if _PAGE_SUFFIX.search(url):
+        return []
+    soup = BeautifulSoup(html, "html.parser")
+    nums = [int(a.get_text(strip=True))
+            for a in soup.select(".pageNav-page a, .pageNav a")
+            if a.get_text(strip=True).isdigit()]
+    if not nums:
+        return []
+    last = min(max(nums), cap)
+    if last < 2:
+        return []
+    base = url.rstrip("/")
+    return [f"{base}/page-{p}" for p in range(2, last + 1)]
 
 
 def _extract_forum(html: str, max_len: int, min_len: int) -> list[str]:
@@ -162,8 +186,21 @@ def fetch_comments(url: str, *, max_len: int = 5000, min_len: int = 3,
     trafilatura (news/blog) → raw BeautifulSoup heuristic."""
     resp = http_get(url, timeout=timeout, expect_html=True, _transport=_transport)
     out = _extract_forum(resp.text, max_len, min_len)
-    if not out:
-        out = _extract_readable(resp.text, max_len, min_len)
+    if out:
+        # forum thread: also pull the remaining pages (bounded), then dedup
+        seen = set(out)
+        for page_url in _forum_page_urls(resp.text, url):
+            try:
+                page = http_get(page_url, timeout=timeout, expect_html=True,
+                                _transport=_transport)
+            except FetchError:
+                break  # stop paginating on the first bad page
+            for text in _extract_forum(page.text, max_len, min_len):
+                if text not in seen:
+                    seen.add(text)
+                    out.append(text)
+        return out
+    out = _extract_readable(resp.text, max_len, min_len)
     if not out:
         out = _extract(resp.text, max_len, min_len)
     return out
