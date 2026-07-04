@@ -15,6 +15,7 @@ Repo gồm cả pipeline huấn luyện (notebooks) lẫn một ứng dụng web
 - [Kết quả](#kết-quả)
 - [Cấu trúc repo](#cấu-trúc-repo)
 - [Ứng dụng web](#ứng-dụng-web)
+- [Reproduce từ đầu (máy mới)](#reproduce-từ-đầu-máy-mới)
 - [Chạy thử ở local](#chạy-thử-ở-local)
 - [API](#api)
 - [Kiểm thử](#kiểm-thử)
@@ -67,8 +68,9 @@ Quy trình thực nghiệm nằm trong `notebooks/`, chạy theo thứ tự:
 | `07_model_figures.ipynb` | Vẽ hình kết quả |
 
 Artifacts huấn luyện (`tfidf_vectorizer.pkl`, `bow_vectorizer.pkl`, `tfidf_svd.pkl`, `models/model_*.pkl`,
-và PhoBERT đã fine-tune) **không** được commit (xem `.gitignore`); backend nạp chúng từ thư mục `artifacts/`
-ở local hoặc từ HF Hub khi triển khai.
+và PhoBERT đã fine-tune) **không** được commit (xem `.gitignore`) vì quá lớn. Trên một máy mới, thư mục
+`artifacts/` và `phobert/` **rỗng** — phải sinh lại bằng cách chạy notebook trước khi backend chạy được.
+Xem [Chuẩn bị artifacts](#chuẩn-bị-artifacts-bắt-buộc-cho-máy-mới).
 
 ## Kết quả
 
@@ -112,24 +114,75 @@ lớp thiểu số HATE — lớp khó nhất do mất cân bằng dữ liệu.
   chấm điểm CSV hàng loạt và bảng metrics. PhoBERT được nạp lazy ở lần `/showdown` đầu tiên.
 - **Frontend** — Next.js (App Router) + Tailwind + React Query; biểu đồ bằng Recharts.
 
+## Reproduce từ đầu (máy mới)
+
+**Yêu cầu:** Python **3.11 hoặc 3.12** (torch 2.4 chưa có wheel ổn định cho 3.13), Node 18+, ~4 GB đĩa trống,
+git. GPU không bắt buộc nhưng fine-tune PhoBERT trên CPU rất chậm.
+
+Repo có **hai** file requirements, phục vụ hai mục đích khác nhau:
+
+| File | Dùng cho | Cài khi |
+|------|----------|---------|
+| `requirements.txt` (gốc) | Chạy notebook: EDA + huấn luyện (sklearn + PhoBERT) | Muốn sinh lại artifacts |
+| `app/backend/requirements.txt` | Chạy backend FastAPI (serving) | Muốn chạy web app |
+
+Dữ liệu (`data/*.csv`) đã commit sẵn. Artifacts (`.pkl`, PhoBERT) **chưa** — bước dưới sẽ sinh chúng.
+
+### Chuẩn bị artifacts (bắt buộc cho máy mới)
+
+Backend **không khởi động được** nếu thiếu các file này. Layout backend yêu cầu:
+
+```
+artifacts/
+├── tfidf_vectorizer.pkl        # 3 vectorizer ở gốc artifacts/
+├── bow_vectorizer.pkl
+├── tfidf_svd.pkl
+└── models/
+    ├── model_lr.pkl  model_svm.pkl  model_sgd.pkl
+    ├── model_nb.pkl  model_rf.pkl   model_voting.pkl
+phobert/                        # PhoBERT đã fine-tune (config.json, model.safetensors, ...)
+```
+
+```bash
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt jupyter
+
+# 1) Sinh 6 mô hình sklearn + vectorizer → artifacts/
+#    06 đọc data/*_clean.csv (đã commit sẵn) nên chạy trực tiếp được:
+jupyter nbconvert --to notebook --execute --inplace notebooks/06_model_training.ipynb
+#    → ghi tfidf_vectorizer.pkl / bow_vectorizer.pkl / tfidf_svd.pkl vào artifacts/
+#      và model_*.pkl vào artifacts/models/ (tạo thư mục models/ nếu chưa có)
+#    (01_cleaning + 02_text_preprocessing chỉ cần chạy nếu muốn sinh lại *_clean.csv từ dữ liệu thô)
+
+# 2) (Tùy chọn) Fine-tune PhoBERT → phobert/
+#    Bỏ qua được: thiếu PhoBERT thì backend tự degrade sang sklearn (spec §4.6).
+jupyter nbconvert --to notebook --execute --inplace notebooks/06_model_training_DL.ipynb
+#    → save_pretrained ra thư mục phobert/ ; hoặc tải sẵn từ HF Hub (xem PHOBERT_REPO)
+```
+
+> Nếu notebook ghi `model_*.pkl` ra `artifacts/` thay vì `artifacts/models/`, di chuyển chúng vào
+> `artifacts/models/` cho khớp layout backend nạp (`app/backend/services/sklearn_registry.py:47`).
+
 ## Chạy thử ở local
 
-**Yêu cầu:** Python 3.11+, Node 18+. Thư mục `artifacts/` đã có các file `.pkl` (sinh từ `06_model_training.ipynb`).
+Đã có `artifacts/` (và tùy chọn `phobert/`) từ bước trên.
 
 ### Backend
 
 ```bash
-python -m venv .venv && source .venv/bin/activate
+# Trong .venv đã tạo ở trên:
 pip install -r app/backend/requirements.txt
+cp .env.example .env                         # sửa giá trị nếu cần (đều có default)
 
-# Biến môi trường (đều có default; chỉ /rewrite và PhoBERT cần thiết lập thêm)
+# Biến môi trường (hoặc để trong .env — config.py tự nạp):
 export ARTIFACTS_DIR=artifacts
-export PHOBERT_REPO=<user>/vihsd-phobert     # tùy chọn — repo HF Hub PhoBERT đã fine-tune
+export PHOBERT_REPO=phobert                  # thư mục local ở trên, hoặc <user>/vihsd-phobert trên HF Hub; để trống = tắt PhoBERT
 export GEMINI_API_KEY=<key>                  # tùy chọn — bật endpoint /rewrite
 export CORS_ORIGINS=http://localhost:3000
 
 uvicorn app.backend.main:app --reload --port 8000
 # kiểm tra: http://localhost:8000/health  → {"sklearn_loaded": true, ...}
+# sklearn_loaded=false ⇒ thiếu/ sai layout artifacts (xem bước Chuẩn bị artifacts)
 ```
 
 ### Frontend
