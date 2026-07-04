@@ -72,6 +72,27 @@ def _dedup_lines(text: str, max_len: int, min_len: int) -> list[str]:
     return out
 
 
+# per-post body selectors for common forum engines: XenForo (voz & most VN
+# forums), Discourse, phpBB. High-signal — one clean node per post, no chrome.
+_FORUM_POST_SELECTORS = ".bbWrapper, .cooked, .postbody"
+
+
+def _extract_forum(html: str, max_len: int, min_len: int) -> list[str]:
+    """Structured per-post extraction for forum threads. Returns [] when the
+    page has no recognizable forum post markup, so callers fall back to the
+    generic readable/heuristic extractors."""
+    soup = BeautifulSoup(html, "html.parser")
+    seen: set[str] = set()
+    out: list[str] = []
+    for node in soup.select(_FORUM_POST_SELECTORS):
+        text = " ".join(node.get_text(" ", strip=True).split())
+        if not text or len(text) < min_len or len(text) > max_len or text in seen:
+            continue
+        seen.add(text)
+        out.append(text)
+    return out
+
+
 def _extract_readable(html: str, max_len: int, min_len: int) -> list[str]:
     """Main content + comments via trafilatura (strips site boilerplate well).
 
@@ -137,10 +158,12 @@ def http_get(url: str, *, timeout: float = 10.0, expect_html: bool = True,
 
 def fetch_comments(url: str, *, max_len: int = 5000, min_len: int = 3,
                    timeout: float = 10.0, _transport=None) -> list[str]:
-    """Generic extraction: guarded fetch → trafilatura → BeautifulSoup fallback."""
+    """Generic extraction, best signal first: structured forum posts →
+    trafilatura (news/blog) → raw BeautifulSoup heuristic."""
     resp = http_get(url, timeout=timeout, expect_html=True, _transport=_transport)
-    # trafilatura first (clean, boilerplate-stripped); raw heuristic as fallback
-    out = _extract_readable(resp.text, max_len, min_len)
+    out = _extract_forum(resp.text, max_len, min_len)
+    if not out:
+        out = _extract_readable(resp.text, max_len, min_len)
     if not out:
         out = _extract(resp.text, max_len, min_len)
     return out

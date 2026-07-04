@@ -59,6 +59,36 @@ def test_bs_fallback_strips_noise_and_catches_forum_comments():
     assert not any("Bản quyền" in o for o in out)
 
 
+XENFORO_HTML = """
+<html><body>
+  <article class="message">
+    <span class="message-name">nguoidung1</span><span>Member</span>
+    <div class="bbWrapper">Bài viết đầu tiên trong thread này</div>
+  </article>
+  <article class="message">
+    <span class="message-name">nguoidung2</span>
+    <div class="bbWrapper">Phản hồi thứ hai của thành viên khác</div>
+  </article>
+</body></html>
+"""
+
+
+def test_forum_extraction_gets_post_bodies_not_usernames():
+    out = fetcher._extract_forum(XENFORO_HTML, max_len=5000, min_len=3)
+    assert out == ["Bài viết đầu tiên trong thread này",
+                   "Phản hồi thứ hai của thành viên khác"]
+    # usernames / badges outside .bbWrapper are excluded
+    assert not any("nguoidung" in o for o in out)
+    assert "Member" not in out
+
+
+def test_forum_extraction_is_preferred_over_trafilatura():
+    out = fetch_comments("https://forum.example/thread",
+                         _transport=_mock_transport(content=XENFORO_HTML))
+    assert "Bài viết đầu tiên trong thread này" in out
+    assert not any("nguoidung" in o for o in out)
+
+
 def test_trafilatura_is_primary_bs_is_fallback():
     # trafilatura pulls main content + comments and strips boilerplate on real
     # pages; the fetcher prefers it, falling back to _extract only when empty.
