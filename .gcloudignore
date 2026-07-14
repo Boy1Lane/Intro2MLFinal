@@ -1,0 +1,21 @@
+# Cloud Run build context. Do NOT fall back to .gitignore (that would drop
+# artifacts/ and ship an image with no models). Keep artifacts/, drop the rest.
+.git/
+.gitignore
+phobert/
+output/
+notebooks/
+reports/
+docs/
+data/
+app/frontend/
+scripts/
+tests/
+**/tests/
+**/__pycache__/
+.pytest_cache/
+.superpowers/
+.claude/
+monitor_state.json
+*.original.md
+.env

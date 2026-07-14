@@ -78,7 +78,7 @@ export default function MonitorPage() {
     <main className="mx-auto max-w-5xl px-4 py-8">
       <h1 className="text-2xl font-semibold text-slate-900">Monitor</h1>
       <p className="mt-1 text-sm text-slate-500">
-        Theo dõi URL định kỳ (mỗi vài phút). Bình luận tiêu cực mới sẽ hiện cảnh báo đỏ.
+        Thêm URL rồi bấm Quét để phân tích bình luận. Bình luận tiêu cực sẽ hiện cảnh báo đỏ.
       </p>
       {sources.data && sources.data.length > 0 && (
         <p className="mt-1 text-xs text-slate-400">

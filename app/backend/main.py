@@ -7,7 +7,6 @@ from app.backend.config import get_settings
 from app.backend.routers import predict, rewrite, batch, insights, monitor
 from app.backend.services.monitor import MonitorService
 from app.backend.services.phobert import PhoBertService
-from app.backend.services.scheduler import MonitorScheduler
 from app.backend.services.sklearn_registry import SklearnRegistry
 
 
@@ -21,13 +20,10 @@ async def lifespan(app: FastAPI):
     app.state.monitor = MonitorService(app.state.registry, app.state.phobert,
                                        settings)
     app.state.monitor.load()
-    app.state.monitor_scheduler = MonitorScheduler(
-        app.state.monitor, settings.monitor_interval_sec)
-    app.state.monitor_scheduler.start()
-    try:
-        yield
-    finally:
-        app.state.monitor_scheduler.shutdown()
+    # No background scheduler: on Cloud Run (scale-to-zero, CPU throttled when
+    # idle) a background thread cannot run reliably. Watches are refreshed only
+    # on demand via POST /monitor/watches/{id}/scan.
+    yield
 
 
 def create_app() -> FastAPI:

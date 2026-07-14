@@ -12,7 +12,7 @@ def rewrite_polite(text: str, api_key: str | None) -> str:
         from google import genai
         client = genai.Client(api_key=api_key)
         resp = client.models.generate_content(
-            model="gemini-1.5-flash",
+            model="gemini-3.5-flash",
             contents=PROMPT.format(text=text),
         )
         out = (resp.text or "").strip()
