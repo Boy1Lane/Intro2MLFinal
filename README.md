@@ -30,12 +30,15 @@ Hướng tiếp cận: so sánh 6 mô hình machine learning cổ điển (đặ
 deep learning fine-tune từ **PhoBERT-base-v2**, sau đó đóng gói mô hình tốt nhất vào một
 "Comment Moderation Studio" có thể tương tác trực tiếp.
 
-Web app cung cấp 4 năng lực:
+Web app cung cấp 5 năng lực:
 
 1. **Studio** — chấm điểm một bình luận: phán quyết + mức tin cậy + giải thích token (mô hình tuyến tính) + so sánh 7 mô hình.
 2. **Viết lại lịch sự** — dùng Gemini gợi ý bản viết lại không độc hại.
 3. **Mô phỏng** — tải CSV để chấm điểm hàng loạt, xem phân bố nhãn và các bình luận độc hại nhất.
 4. **Kết quả mô hình** — bảng metrics của 7 mô hình trên tập test.
+5. **Monitor** — theo dõi một URL diễn đàn (XenForo/Discourse/phpBB hoặc trang bất kỳ dạng best-effort),
+   quét bình luận theo yêu cầu (nút bấm, có phân trang tự động giới hạn số trang) và chấm điểm bằng
+   PhoBERT hoặc một mô hình sklearn do người dùng chọn.
 
 ## Dữ liệu
 
@@ -105,6 +108,7 @@ lớp thiểu số HATE — lớp khó nhất do mất cân bằng dữ liệu.
 ├── scripts/upload_phobert.py   # đẩy PhoBERT đã fine-tune lên HF Hub
 ├── docs/                  # báo cáo, runbook triển khai (DEPLOY.md)
 ├── output/eda/            # hình EDA
+├── Dockerfile             # build backend cho Cloud Run (root, không phải app/backend/Dockerfile)
 └── requirements.txt       # deps cho phần notebook/training
 ```
 
@@ -206,6 +210,14 @@ Base URL mặc định local: `http://localhost:8000`.
 | POST   | `/batch`     | Upload CSV (cột `free_text`) → phân bố nhãn + top độc hại |
 | GET    | `/insights`  | Bảng metrics 7 mô hình trên tập test |
 | GET    | `/health`    | Trạng thái nạp sklearn / PhoBERT |
+| GET    | `/monitor/sources` | Danh sách nguồn có adapter riêng (XenForo/Discourse/phpBB) |
+| GET    | `/monitor/models` | Model khả dụng để gán cho một watch |
+| POST   | `/monitor/watches` | Tạo watch mới theo dõi 1 URL |
+| GET    | `/monitor/watches` | Danh sách watch hiện có |
+| GET    | `/monitor/watches/{id}` | Chi tiết watch: các bình luận đã quét + nhãn |
+| POST   | `/monitor/watches/{id}/scan` | Quét theo yêu cầu (không có job nền định kỳ) |
+| POST   | `/monitor/watches/{id}/ack` | Đánh dấu đã xem cảnh báo |
+| DELETE | `/monitor/watches/{id}` | Xoá watch |
 
 Tài liệu OpenAPI tương tác: `http://localhost:8000/docs`.
 
@@ -223,5 +235,20 @@ npm run build                           # kiểm tra build production
 
 ## Triển khai
 
-Backend → Hugging Face Space (Docker), Frontend → Vercel. Runbook chi tiết: [`docs/DEPLOY.md`](docs/DEPLOY.md).
+| Thành phần | Nền tảng | Cấu hình chính |
+|---|---|---|
+| Frontend (Next.js) | Vercel | Build tĩnh; `NEXT_PUBLIC_API_URL` trỏ tới API |
+| Backend (FastAPI) | Google Cloud Run | Docker (root `Dockerfile`); 2 vCPU, 4 GiB, `max-instances=1` |
+| Trọng số PhoBERT | Hugging Face Hub | Nạp lúc chạy qua `PHOBERT_REPO`, không đóng gói trong image |
+| Viết lại lịch sự | Gemini API | Kích hoạt khi có `GEMINI_API_KEY` |
+
+Đường dẫn công khai:
+- App: `frontend-eosin-one-19.vercel.app`
+- API: `vihsd-api-78943546237.asia-southeast1.run.app`
+
+Backend từng chạy trên Hugging Face Space (Docker) nhưng đã chuyển sang Cloud Run vì HF Space
+Docker chuyển sang tính phí. Cloud Run tự tắt khi không có traffic để tiết kiệm chi phí, nên
+Monitor không có job nền định kỳ — chỉ quét khi người dùng bấm nút.
+
+Runbook chi tiết: [`docs/DEPLOY.md`](docs/DEPLOY.md).
 Đẩy PhoBERT đã fine-tune lên HF Hub bằng `scripts/upload_phobert.py`.
