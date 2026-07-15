@@ -1,5 +1,5 @@
 "use client";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
 import type { BatchResponse } from "@/lib/api";
 import { labelColor } from "@/lib/labels";
 
@@ -22,13 +22,23 @@ export function BatchDashboard({ data }: { data: BatchResponse }) {
       </div>
       <div className="surface p-5">
         <h3 className="eyebrow mb-3">Phân bố nhãn</h3>
-        <div className="h-56">
+        <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
-              <Pie data={pie} dataKey="value" nameKey="name" innerRadius={50} outerRadius={80}>
+              <Pie
+                data={pie}
+                dataKey="value"
+                nameKey="name"
+                innerRadius={50}
+                outerRadius={80}
+                label={({ name, value, percent }) =>
+                  value ? `${name}: ${value} (${Math.round((percent ?? 0) * 100)}%)` : ""}
+                labelLine={false}
+              >
                 {pie.map((_, i) => <Cell key={i} fill={COLORS[i]} />)}
               </Pie>
-              <Tooltip />
+              <Tooltip formatter={(v: number, n: string) => [`${v} bình luận`, n]} />
+              <Legend verticalAlign="bottom" height={24} />
             </PieChart>
           </ResponsiveContainer>
         </div>

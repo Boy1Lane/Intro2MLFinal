@@ -136,21 +136,23 @@ export default function StudioPage() {
             {batchM.isPending && <Spinner label="Đang chấm điểm file..." />}
             {batchM.isError && <ErrorNote message={(batchM.error as Error).message} />}
             {batchM.data && <BatchDashboard data={batchM.data} />}
-            {!batchM.data && !batchM.isPending && (
-              <p className="text-sm text-slate-400">
-                File CSV cần có cột <code className="font-mono text-slate-600">free_text</code>.
-              </p>
-            )}
           </div>
         )}
       </section>
 
-      {/* Model results (always visible) */}
+      {/* Static offline benchmark, visually separated from the live analysis above */}
       <section id="models" className="scroll-mt-20 space-y-4">
-        <div>
-          <p className="eyebrow mb-1">Đánh giá trên tập test ViHSD</p>
-          <h2 className="text-2xl font-bold tracking-tight text-slate-900">Kết quả mô hình</h2>
+        <div className="relative py-1">
+          <div className="absolute inset-0 flex items-center" aria-hidden>
+            <div className="w-full border-t-2 border-slate-300" />
+          </div>
+          <div className="relative flex justify-center">
+            <span className="bg-white px-4 text-xs font-semibold uppercase tracking-wider text-slate-400">
+              Benchmark · Tập Test ViHSD
+            </span>
+          </div>
         </div>
+        <h2 className="text-2xl font-bold tracking-tight text-slate-900">Hiệu năng 7 mô hình</h2>
         {insights.isPending && <Spinner label="Đang tải..." />}
         {insights.isError && <ErrorNote message={(insights.error as Error).message} />}
         {insights.data && (
