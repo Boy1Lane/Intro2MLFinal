@@ -5,6 +5,9 @@ Hệ thống tự động phát hiện ngôn từ thù ghét trên mạng xã h�
 Đồ án cuối kỳ môn Nhập môn Máy học (Intro to ML) — Trường ĐH Khoa học Tự nhiên, ĐHQG-HCM.
 Repo gồm cả pipeline huấn luyện (notebooks) lẫn một ứng dụng web demo end-to-end (FastAPI + Next.js).
 
+**🔗 Demo trực tiếp: [frontend-eosin-one-19.vercel.app](https://frontend-eosin-one-19.vercel.app)**
+(API: [vihsd-api-78943546237.asia-southeast1.run.app/docs](https://vihsd-api-78943546237.asia-southeast1.run.app/docs))
+
 ---
 
 ## Mục lục
@@ -14,6 +17,7 @@ Repo gồm cả pipeline huấn luyện (notebooks) lẫn một ứng dụng web
 - [Pipeline & mô hình](#pipeline--mô-hình)
 - [Kết quả](#kết-quả)
 - [Cấu trúc repo](#cấu-trúc-repo)
+- [Ảnh minh hoạ](#ảnh-minh-hoạ)
 - [Ứng dụng web](#ứng-dụng-web)
 - [Reproduce từ đầu (máy mới)](#reproduce-từ-đầu-máy-mới)
 - [Chạy thử ở local](#chạy-thử-ở-local)
@@ -111,6 +115,16 @@ lớp thiểu số HATE — lớp khó nhất do mất cân bằng dữ liệu.
 ├── Dockerfile             # build backend cho Cloud Run (root, không phải app/backend/Dockerfile)
 └── requirements.txt       # deps cho phần notebook/training
 ```
+
+## Ảnh minh hoạ
+
+| Studio — phán quyết + giải thích + so sánh 7 mô hình | Mô phỏng — chấm điểm CSV hàng loạt |
+|---|---|
+| ![Studio](docs/images/app_studio.png) | ![Mô phỏng](docs/images/app_simulate.png) |
+
+| Monitor — theo dõi bình luận diễn đàn theo yêu cầu | Kết quả mô hình — benchmark 7 mô hình trên tập test |
+|---|---|
+| ![Monitor](docs/images/app_monitor.png) | ![Benchmark](docs/images/app_benchmark.png) |
 
 ## Ứng dụng web
 
@@ -235,6 +249,8 @@ npm run build                           # kiểm tra build production
 
 ## Triển khai
 
+![Kiến trúc triển khai](docs/images/vihsd_deployment_architecture.png)
+
 | Thành phần | Nền tảng | Cấu hình chính |
 |---|---|---|
 | Frontend (Next.js) | Vercel | Build tĩnh; `NEXT_PUBLIC_API_URL` trỏ tới API |
@@ -246,9 +262,8 @@ npm run build                           # kiểm tra build production
 - App: `frontend-eosin-one-19.vercel.app`
 - API: `vihsd-api-78943546237.asia-southeast1.run.app`
 
-Backend từng chạy trên Hugging Face Space (Docker) nhưng đã chuyển sang Cloud Run vì HF Space
-Docker chuyển sang tính phí. Cloud Run tự tắt khi không có traffic để tiết kiệm chi phí, nên
-Monitor không có job nền định kỳ — chỉ quét khi người dùng bấm nút.
+Cloud Run tự tắt khi không có traffic, nên Monitor không có job nền định kỳ — chỉ quét khi
+người dùng bấm nút.
 
 Runbook chi tiết: [`docs/DEPLOY.md`](docs/DEPLOY.md).
 Đẩy PhoBERT đã fine-tune lên HF Hub bằng `scripts/upload_phobert.py`.
